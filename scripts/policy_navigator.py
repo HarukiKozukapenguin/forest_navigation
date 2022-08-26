@@ -11,6 +11,7 @@ from aerial_robot_msgs.msg import FlightNav
 
 import torch
 print("torch.cuda.is_available() is ",torch.cuda.is_available())
+print("torch.__version__ is ", torch.__version__)
 import numpy as np
 
 from scipy.spatial.transform import Rotation as R 
@@ -49,6 +50,7 @@ class AgilePilotNode:
         self.state = None
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.world_box = np.array([-0.2, 5.0 ,-1.5, 1.5, 0.0, 2.0],dtype="float32")
+        self.rl_policy = None
         # should change depending on world flame's origin
 
         quad_name = 'multirotor'
@@ -80,10 +82,10 @@ class AgilePilotNode:
             return
         if self.state is None:
             return
-        rl_policy = None
-        if self.ppo_path is not None:
-            rl_policy = self.load_rl_policy(self.ppo_path)
-        vel_msg = self.rl_example(state=self.state, obstacles=obs_data, rl_policy=rl_policy)
+        # self.rl_policy = None
+        if self.ppo_path is not None and self.rl_policy is None:
+            self.rl_policy = self.load_rl_policy(self.ppo_path)
+        vel_msg = self.rl_example(state=self.state, obstacles=obs_data, rl_policy=self.rl_policy)
 
         if self.publish_commands:
             self.linvel_pub.publish(vel_msg)
@@ -117,15 +119,15 @@ class AgilePilotNode:
         # cmd freq is same as simulator? cf. in RL dt = 0.02
         command = FlightNav()
         command.target = 1
-        command.target_xy_nav_mode = 4
-        command.target_z_nav_mode = 4
-        command.pos_x = state.pos[0] + action[0]
-        command.pos_y = state.pos[1] + action[1]
-        command.pos_z = state.pos[2] + action[2]
+        command.pos_xy_nav_mode = 4
+        command.pos_z_nav_mode = 4
+        command.target_pos_x = state.pos[0] + action[0]
+        command.target_pos_y = state.pos[1] + action[1]
+        command.target_pos_z = state.pos[2] + action[2]
 
-        command.vel_x = state.vel[0] + action[3]
-        command.vel_y = state.vel[1] + action[4]
-        command.vel_z = state.vel[2] + action[5]
+        command.target_vel_x = float(state.vel[0] + action[3])
+        command.target_vel_y = float(state.vel[1] + action[4])
+        command.target_vel_z = float(state.vel[2] + action[5])
 
         # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
         command.target_yaw = euler[2] + action[6]
@@ -148,9 +150,9 @@ class AgilePilotNode:
         # # -- load saved varaiables 
         device = get_device("auto")
         saved_variables = torch.load(policy_dir, map_location=device)
-        print("type of saved_variables[data]", type(saved_variables["data"]),'\n')
-        for key in saved_variables["data"]:
-            print("key",key)
+        # print("type of saved_variables[data]", type(saved_variables["data"]),'\n')
+        # for key in saved_variables["data"]:
+        #     print("key",key)
 
         # Create policy object
         policy = MlpPolicy(**saved_variables["data"])
