@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>forest_navigation</name>
+  <version>0.0.0</version>
+  <description>forest navigation by RL</description>
+
+  <maintainer email="kozuka@jsk.imi.i.u-tokyo.ac.jp">Haruki Kozuka</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>python3-catkin-pkg-modules</buildtool_depend>
+  <build_depend version_gte="0.6.1">catkin_virtualenv</build_depend>
+  <build_depend>aerial_robot_control</build_depend>
+  <build_depend>aerial_robot_model</build_depend>
+  <build_depend>aerial_robot_msgs</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <build_export_depend>aerial_robot_control</build_export_depend>
+  <build_export_depend>aerial_robot_model</build_export_depend>
+  <build_export_depend>aerial_robot_msgs</build_export_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <exec_depend>aerial_robot_control</exec_depend>
+  <exec_depend>aerial_robot_model</exec_depend>
+  <exec_depend>aerial_robot_msgs</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-rospkg-modules</exec_depend>
+  <exec_depend>python3-empy</exec_depend>
+  <exec_depend>python3-setuptools</exec_depend>
+  <exec_depend>resource_retriever</exec_depend>
+  <exec_depend>pdb</exec_depend>
+
+  <export>
+    <pip_requirements>requirements.txt</pip_requirements>
+  </export>
+</package>
