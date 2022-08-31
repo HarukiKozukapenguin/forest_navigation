@@ -5,6 +5,6 @@
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
 
   <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" >
-    <param name="ppo_path" value="$(find agile_multirotor)/linvel_policy" />
+    <param name="ppo_path" value="$(find agile_multirotor)/linvel_momentum_policy" />
   </node>
 </launch>

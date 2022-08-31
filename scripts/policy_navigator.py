@@ -71,6 +71,11 @@ class AgilePilotNode:
         # Command publishers
         self.linvel_pub = rospy.Publisher("/" + quad_name + "/uav/nav", FlightNav,
                                           queue_size=1)
+        self.command = FlightNav()
+        self.command.target = 1
+        self.command.pos_xy_nav_mode = 4
+        self.command.pos_z_nav_mode = 4
+
         print("Initialization completed!")
 
 
@@ -117,23 +122,19 @@ class AgilePilotNode:
         action = (action * act_std + act_mean)[0, :]
 
         # cmd freq is same as simulator? cf. in RL dt = 0.02
-        command = FlightNav()
-        command.target = 1
-        command.pos_xy_nav_mode = 4
-        command.pos_z_nav_mode = 4
-        command.target_pos_x = state.pos[0] + action[0]
-        command.target_pos_y = state.pos[1] + action[1]
-        command.target_pos_z = state.pos[2] + action[2]
+        momentum = 0.9
+        self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0])+momentum*self.command.target_pos_x
+        self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1])+momentum*self.command.target_pos_y
+        self.command.target_pos_z = (1-momentum)*(state.pos[2] + action[2])+momentum*self.command.target_pos_z
 
-        command.target_vel_x = float(state.vel[0] + action[3])
-        command.target_vel_y = float(state.vel[1] + action[4])
-        command.target_vel_z = float(state.vel[2] + action[5])
+        self.command.target_vel_x = float((1-momentum)*(state.vel[0] + action[3])+momentum*self.command.target_vel_x)
+        self.command.target_vel_y = float((1-momentum)*(state.vel[1] + action[4])+momentum*self.command.target_vel_y)
+        self.command.target_vel_z = float((1-momentum)*(state.vel[2] + action[5])+momentum*self.command.target_vel_z)
 
         # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
-        command.target_yaw = euler[2] + action[6]
+        self.command.target_yaw = (1-momentum)*(euler[2] + action[6])+momentum*self.command.target_yaw
 
-
-        return command
+        return self.command
     
     def load_rl_policy(self, policy_path):
         print("============ policy_path: ", policy_path)
