@@ -10,5 +10,5 @@ catkin build
 Execute:
 ```
 source ~/policy_ws/devel/setup.bash
-roslaunch navigator.launch
+roslaunch forest_navigation navigator.launch
 ```
