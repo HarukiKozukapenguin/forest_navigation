@@ -118,6 +118,9 @@ class AgilePilotNode:
         obs = obs.reshape(-1, obs.shape[0])
         norm_obs = self.normalize_obs(obs, obs_mean, obs_var)
         #  compute action
+
+        # print("type(norm_obs) is ",type(norm_obs))
+        # print("norm_obs is ",norm_obs.shape)
         action, _ = policy.predict(norm_obs, deterministic=True)
         action = (action * act_std + act_mean)[0, :]
 
@@ -169,6 +172,18 @@ class AgilePilotNode:
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
+        self.command.target_pos_x = self.state.pos[0]
+        self.command.target_pos_y = self.state.pos[1]
+        self.command.target_pos_z = self.state.pos[2]
+
+        self.command.target_vel_x = self.state.vel[0]
+        self.command.target_vel_y = self.state.vel[1]
+        self.command.target_vel_z = self.state.vel[2]
+
+        # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
+        rotation_matrix = R.from_quat(self.state.att)
+        euler = rotation_matrix.as_euler('xyz')
+        self.command.target_yaw = euler[2]
     
     def normalize_obs(self, obs, obs_mean, obs_var):
         return (obs - obs_mean) / np.sqrt(obs_var + 1e-8)
