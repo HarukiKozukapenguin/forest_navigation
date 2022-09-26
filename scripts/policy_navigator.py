@@ -16,7 +16,7 @@ import numpy as np
 
 from scipy.spatial.transform import Rotation as R 
 from stable_baselines3.common.utils import get_device
-from stable_baselines3.ppo.policies import MlpPolicy
+from sb3_contrib.ppo_recurrent import MlpLstmPolicy
 
 
 
@@ -76,6 +76,10 @@ class AgilePilotNode:
         self.command.pos_xy_nav_mode = 4
         self.command.pos_z_nav_mode = 4
 
+        self.lstm_states = None
+
+        self.n_act = np.zeros(7)
+
         print("Initialization completed!")
 
 
@@ -110,7 +114,7 @@ class AgilePilotNode:
         rotation_matrix = rotation_matrix.as_matrix().reshape((9,), order="F")
         
         obs = np.concatenate([
-            goal_vel, rotation_matrix, state.pos, state.vel, obs_vec, 
+            self.n_act, goal_vel, rotation_matrix, state.pos, state.vel, obs_vec, 
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1], 
             world_box[4] - state.pos[2] , world_box[5] - state.pos[2]]),
     state.omega], axis=0).astype(np.float64)
@@ -121,8 +125,8 @@ class AgilePilotNode:
 
         # print("type(norm_obs) is ",type(norm_obs))
         # print("norm_obs is ",norm_obs.shape)
-        action, _ = policy.predict(norm_obs, deterministic=True)
-        action = (action * act_std + act_mean)[0, :]
+        self.n_act, self.lstm_states = policy.predict(norm_obs, state = self.lstm_states, deterministic=True)
+        action = (self.n_act * act_std + act_mean)[0, :]
 
         # cmd freq is same as simulator? cf. in RL dt = 0.02
         momentum = 0.9
@@ -153,18 +157,9 @@ class AgilePilotNode:
 
         # # -- load saved varaiables 
         device = get_device("auto")
-        saved_variables = torch.load(policy_dir, map_location=device)
-        # print("type of saved_variables[data]", type(saved_variables["data"]),'\n')
-        # for key in saved_variables["data"]:
-        #     print("key",key)
 
         # Create policy object
-        policy = MlpPolicy(**saved_variables["data"])
-        #
-        policy.action_net = torch.nn.Sequential(policy.action_net, torch.nn.Tanh())
-        # Load weights
-        policy.load_state_dict(saved_variables["state_dict"], strict=False)
-        policy.to(device)
+        policy = MlpLstmPolicy.load(policy_dir, device = device)
 
         return policy, obs_mean, obs_var, act_mean, act_std
 

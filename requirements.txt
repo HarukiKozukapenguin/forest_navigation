@@ -1,10 +1,11 @@
 wheel==0.36.2
 numpy==1.21.4
-# --find-links https://download.pytorch.org/whl/torch_stable.html
-# torch==1.9.0+cu111
-# torchvision==0.10.0+cu111
-torch==1.9.0
-torchvision==0.10.0
-torchaudio==0.9.0
-stable-baselines3==1.5.0
+--find-links https://download.pytorch.org/whl/torch_stable.html
+opencv-python
+torch==1.11+cu102
+# torchvision
+# torchaudio
+stable-baselines3>=1.6.1a2
 scipy==1.4.1
+-e git+https://github.com/HarukiKozukapenguin/stable-baselines3-contrib.git@master#egg=sb3_contrib
+# https://matiascodesal.com/blog/how-use-git-repository-pip-dependency/
