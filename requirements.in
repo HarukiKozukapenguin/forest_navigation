@@ -1,7 +1,7 @@
 wheel==0.36.2
 numpy==1.21.4
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch==1.11+cu102
+torch==1.11+cu113
 # torchvision
 # torchaudio
 stable-baselines3>=1.6.1a2

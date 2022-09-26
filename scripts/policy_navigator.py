@@ -114,7 +114,7 @@ class AgilePilotNode:
         rotation_matrix = rotation_matrix.as_matrix().reshape((9,), order="F")
         
         obs = np.concatenate([
-            self.n_act, goal_vel, rotation_matrix, state.pos, state.vel, obs_vec, 
+            self.n_act.reshape((7)), goal_vel, rotation_matrix, state.pos, state.vel, obs_vec, 
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1], 
             world_box[4] - state.pos[2] , world_box[5] - state.pos[2]]),
     state.omega], axis=0).astype(np.float64)
@@ -126,6 +126,8 @@ class AgilePilotNode:
         # print("type(norm_obs) is ",type(norm_obs))
         # print("norm_obs is ",norm_obs.shape)
         self.n_act, self.lstm_states = policy.predict(norm_obs, state = self.lstm_states, deterministic=True)
+        # print("self.n_act",self.n_act)
+        # print("self.n_act.shape",self.n_act.shape)
         action = (self.n_act * act_std + act_mean)[0, :]
 
         # cmd freq is same as simulator? cf. in RL dt = 0.02
