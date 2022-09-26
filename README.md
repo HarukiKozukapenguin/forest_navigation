@@ -2,6 +2,7 @@
 
 Environment setting
 ```
+apt-get install ros-noetic-catkin-virtualenv
 mkdir ~/policy_ws/src && cd ~/policy_ws/src
 git clone https://github.com/HarukiKozukapenguin/forest_navigation.git
 catkin build
