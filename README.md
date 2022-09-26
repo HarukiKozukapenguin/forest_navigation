@@ -13,3 +13,7 @@ Execute:
 source ~/policy_ws/devel/setup.bash
 roslaunch forest_navigation navigator.launch
 ```
+In another terminal
+```
+rostopic pub /multirotor/start_navigation std_msgs/Empty "{}" -1
+```
