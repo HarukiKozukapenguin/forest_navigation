@@ -1,6 +1,6 @@
 # forest_navigation
 
-Environment setting
+Environment setting:
 do setting of [jsk_aerial_robot](<https://github.com/jsk-ros-pkg/jsk_aerial_robot>)
 and 
 ```
