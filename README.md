@@ -1,6 +1,11 @@
 # forest_navigation
 
 Environment setting
+do setting of [jsk_aerial_robot]<https://github.com/jsk-ros-pkg/jsk_aerial_robot>
+and 
+```
+source path_to_jsk_aerial_robot_ws/devel/setup.bash
+```
 ```
 apt-get install ros-noetic-catkin-virtualenv
 mkdir ~/policy_ws/src && cd ~/policy_ws/src
