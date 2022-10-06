@@ -49,7 +49,8 @@ class AgilePilotNode:
         self.publish_commands = False
         self.state = None
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
-        self.world_box = np.array([-0.2, 5.0 ,-1.5, 1.5, 0.0, 2.0],dtype="float32")
+        self.world_box = np.array([-0.2, 5.0 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
+        self.learned_world_box = np.array([-10, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         self.rl_policy = None
         # should change depending on world flame's origin
 
@@ -58,6 +59,8 @@ class AgilePilotNode:
         
         # Logic subscribers
         self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
+                                          queue_size=1, tcp_nodelay=True)
+        self.stop_sub = rospy.Subscriber("/" + quad_name + "/stop_navigation", Empty, self.stop_callback,
                                           queue_size=1, tcp_nodelay=True)
         
 
@@ -100,18 +103,34 @@ class AgilePilotNode:
             self.linvel_pub.publish(vel_msg)
 
     def rl_example(self, state, obstacles, rl_policy=None):
-        policy, obs_mean, obs_var, act_mean, act_std = rl_policy
         obs_vec = np.array(obstacles.boxel)
-
         # Convert state to vector observation
         goal_vel = self.goal_lin_vel
-        world_box = self.world_box
-
+        world_box = self.learned_world_box
         att_aray = state.att
-
         rotation_matrix = R.from_quat(att_aray)
         euler = rotation_matrix.as_euler('xyz')
         rotation_matrix = rotation_matrix.as_matrix().reshape((9,), order="F")
+
+        inside_range = True
+        for i in range (3):
+            inside_range &= self.world_box[i*2]<state.pos[i]<self.world_box[i*2+1]
+        if not inside_range:
+            print("Out of range!")
+            self.command.target_pos_x = state.pos[0]
+            self.command.target_pos_y = state.pos[1]
+            self.command.target_pos_z = state.pos[2]
+
+            self.command.target_vel_x = 0
+            self.command.target_vel_y = 0
+            self.command.target_vel_z = 0
+
+            # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
+            self.command.target_yaw = euler[2]
+            return self.command
+
+        policy, obs_mean, obs_var, act_mean, act_std = rl_policy
+
         
         obs = np.concatenate([
             self.n_act.reshape((7)), goal_vel, rotation_matrix, state.pos, state.vel, obs_vec, 
@@ -181,7 +200,26 @@ class AgilePilotNode:
         rotation_matrix = R.from_quat(self.state.att)
         euler = rotation_matrix.as_euler('xyz')
         self.command.target_yaw = euler[2]
-    
+
+    def stop_callback(self, data):
+        print("Stay current position!")
+        
+        self.command.target_pos_x = self.state.pos[0]
+        self.command.target_pos_y = self.state.pos[1]
+        self.command.target_pos_z = self.state.pos[2]
+
+        self.command.target_vel_x = 0
+        self.command.target_vel_y = 0
+        self.command.target_vel_z = 0
+
+        # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
+        rotation_matrix = R.from_quat(self.state.att)
+        euler = rotation_matrix.as_euler('xyz')
+        self.command.target_yaw = euler[2]
+        self.linvel_pub.publish(self.command)
+        self.publish_commands = False
+
+
     def normalize_obs(self, obs, obs_mean, obs_var):
         return (obs - obs_mean) / np.sqrt(obs_var + 1e-8)
 
