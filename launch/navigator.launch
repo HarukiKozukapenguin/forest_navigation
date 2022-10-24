@@ -2,9 +2,12 @@
 <launch>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" value="multirotor$(arg robot_id)" />
+  <arg name="real_machine" default="True" />
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
 
   <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" >
-    <param name="ppo_path" value="$(find agile_multirotor)/gazebo_policy/recurrent_policy" />
+    <param name="ppo_path" value="$(find agile_multirotor)/gazebo_policy/RecurrentPPO_22" />
+    <param name="real_transition" type="double" value="2.0" if="$(arg real_machine)"  />
+    <param name="real_transition" type="double" value="0.0" unless="$(arg real_machine)"  />
   </node>
 </launch>

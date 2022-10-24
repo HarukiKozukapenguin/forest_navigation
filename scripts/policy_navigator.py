@@ -21,10 +21,10 @@ from sb3_contrib.ppo_recurrent import MlpLstmPolicy
 
 
 class AgileQuadState:
-    def __init__(self, quad_state):
+    def __init__(self, quad_state,transition):
         # self.t = quad_state.t
 
-        self.pos = np.array([quad_state.pose.pose.position.x,
+        self.pos = np.array([quad_state.pose.pose.position.x+transition,
                              quad_state.pose.pose.position.y,
                              quad_state.pose.pose.position.z], dtype=np.float32)
         self.att = np.array([quad_state.pose.pose.orientation.x,
@@ -46,10 +46,12 @@ class AgilePilotNode:
 
         self.vision_based = vision_based
         self.ppo_path = rospy.get_param("~ppo_path")
+        self.real_transition = rospy.get_param("~real_transition")
+        # print(self.real_transition)
         self.publish_commands = False
         self.state = None
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
-        self.world_box = np.array([-0.2, 5.0 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
+        self.world_box = np.array([-0.3, 4.2 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         self.learned_world_box = np.array([-10, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         self.rl_policy = None
         # should change depending on world flame's origin
@@ -87,7 +89,7 @@ class AgilePilotNode:
 
 
     def state_callback(self, state_data):
-        self.state = AgileQuadState(state_data)
+        self.state = AgileQuadState(state_data,self.real_transition)
 
     def obstacle_callback(self, obs_data):
         if self.vision_based:
@@ -112,13 +114,17 @@ class AgilePilotNode:
         euler = rotation_matrix.as_euler('xyz')
         rotation_matrix = rotation_matrix.as_matrix().reshape((9,), order="F")
 
+        goal = self.world_box[1]-1.2<state.pos[0]
         inside_range = True
         for i in range (3):
             inside_range &= self.world_box[i*2]<state.pos[i]<self.world_box[i*2+1]
-        if not inside_range:
-            print("Out of range!")
-            self.command.target_pos_x = state.pos[0]
-            self.command.target_pos_y = state.pos[1]
+        if goal or not inside_range:
+            if goal:
+                print("Goal!")    
+            if not inside_range:
+                print("Out of range!")
+            self.command.target_pos_x = self.world_box[1]-0.8
+            self.command.target_pos_y = 0
             self.command.target_pos_z = state.pos[2]
 
             self.command.target_vel_x = 0
@@ -131,12 +137,15 @@ class AgilePilotNode:
 
         policy, obs_mean, obs_var, act_mean, act_std = rl_policy
 
-        
+        normalized_p = np.zeros(3)
+        for i in range(3):
+            normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
+
         obs = np.concatenate([
-            self.n_act.reshape((7)), goal_vel, rotation_matrix, state.pos, state.vel, obs_vec, 
+            self.n_act.reshape((7)), goal_vel, rotation_matrix, state.pos, normalized_p, state.vel, obs_vec, state.omega,
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1], 
-            world_box[4] - state.pos[2] , world_box[5] - state.pos[2]]),
-    state.omega], axis=0).astype(np.float64)
+            world_box[4] - state.pos[2] , world_box[5] - state.pos[2]])
+    ], axis=0).astype(np.float64)
 
         obs = obs.reshape(-1, obs.shape[0])
         norm_obs = self.normalize_obs(obs, obs_mean, obs_var)
@@ -151,7 +160,7 @@ class AgilePilotNode:
 
         # cmd freq is same as simulator? cf. in RL dt = 0.02
         momentum = 0.9
-        self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0])+momentum*self.command.target_pos_x
+        self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0])+momentum*self.command.target_pos_x-self.real_transition
         self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1])+momentum*self.command.target_pos_y
         self.command.target_pos_z = (1-momentum)*(state.pos[2] + action[2])+momentum*self.command.target_pos_z
 
