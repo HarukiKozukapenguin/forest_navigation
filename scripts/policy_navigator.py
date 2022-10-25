@@ -7,6 +7,8 @@ from std_msgs.msg import Empty
 from nav_msgs.msg import Odometry
 from aerial_robot_msgs.msg import ObstacleArray
 from aerial_robot_msgs.msg import FlightNav
+from rospy.numpy_msg import numpy_msg
+from std_msgs.msg import Float64MultiArray
 # from sensor_msgs.msg import Image
 
 import torch
@@ -17,15 +19,15 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R 
 from stable_baselines3.common.utils import get_device
 from sb3_contrib.ppo_recurrent import MlpLstmPolicy
-
+# import csv
 
 
 class AgileQuadState:
     def __init__(self, quad_state,transition):
         # self.t = quad_state.t
 
-        self.pos = np.array([quad_state.pose.pose.position.x+transition,
-                             quad_state.pose.pose.position.y,
+        self.pos = np.array([quad_state.pose.pose.position.x-transition[0],
+                             quad_state.pose.pose.position.y-transition[1],
                              quad_state.pose.pose.position.z], dtype=np.float32)
         self.att = np.array([quad_state.pose.pose.orientation.x,
                              quad_state.pose.pose.orientation.y,
@@ -46,12 +48,14 @@ class AgilePilotNode:
 
         self.vision_based = vision_based
         self.ppo_path = rospy.get_param("~ppo_path")
-        self.real_transition = rospy.get_param("~real_transition")
+        # self.real_transition = rospy.get_param("~real_transition")
         # print(self.real_transition)
         self.publish_commands = False
         self.state = None
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.world_box = np.array([-0.3, 4.2 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
+        # should change when changing position
+        self.initial_position = np.array([-2, 0],dtype="float32")
         self.learned_world_box = np.array([-10, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         self.rl_policy = None
         # should change depending on world flame's origin
@@ -76,6 +80,10 @@ class AgilePilotNode:
         # Command publishers
         self.linvel_pub = rospy.Publisher("/" + quad_name + "/uav/nav", FlightNav,
                                           queue_size=1)
+        self.obs_pub = rospy.Publisher("/" + quad_name + "/uav/observation", Float64MultiArray,
+                                          queue_size=1)
+        self.act_pub = rospy.Publisher("/" + quad_name + "/uav/action", Float64MultiArray,
+                                          queue_size=1)
         self.command = FlightNav()
         self.command.target = 1
         self.command.pos_xy_nav_mode = 4
@@ -89,7 +97,7 @@ class AgilePilotNode:
 
 
     def state_callback(self, state_data):
-        self.state = AgileQuadState(state_data,self.real_transition)
+        self.state = AgileQuadState(state_data,self.initial_position)
 
     def obstacle_callback(self, obs_data):
         if self.vision_based:
@@ -114,6 +122,8 @@ class AgilePilotNode:
         euler = rotation_matrix.as_euler('xyz')
         rotation_matrix = rotation_matrix.as_matrix().reshape((9,), order="F")
 
+        # print("state.pos[0]: ", state.pos[0])
+        # print("self.world_box[1]-1.2: ", self.world_box[1]-1.2)
         goal = self.world_box[1]-1.2<state.pos[0]
         inside_range = True
         for i in range (3):
@@ -123,7 +133,7 @@ class AgilePilotNode:
                 print("Goal!")    
             if not inside_range:
                 print("Out of range!")
-            self.command.target_pos_x = self.world_box[1]-0.8
+            self.command.target_pos_x = self.world_box[1]+self.initial_position[0]-0.8
             self.command.target_pos_y = 0
             self.command.target_pos_z = state.pos[2]
 
@@ -147,6 +157,19 @@ class AgilePilotNode:
             world_box[4] - state.pos[2] , world_box[5] - state.pos[2]])
     ], axis=0).astype(np.float64)
 
+        # observation_msg = Float64MultiArray()
+        # observation_msg.data = obs.tolist()
+        # self.obs_pub.publish(observation_msg)
+
+        # with open('debug.csv', 'a') as f:
+            # print("now writing")
+            # obs_list = obs.tolist()
+            # print(obs_list)
+
+            # writer = csv.writer(f)
+            # writer.writerow(obs_list)
+        # f.close()
+
         obs = obs.reshape(-1, obs.shape[0])
         norm_obs = self.normalize_obs(obs, obs_mean, obs_var)
         #  compute action
@@ -154,14 +177,23 @@ class AgilePilotNode:
         # print("type(norm_obs) is ",type(norm_obs))
         # print("norm_obs is ",norm_obs.shape)
         self.n_act, self.lstm_states = policy.predict(norm_obs, state = self.lstm_states, deterministic=True)
+
+        # print(self.n_act)
+        
+        # action_msg = Float64MultiArray()
+        # action_msg.data = (self.n_act[0, :]).tolist()
+        # # print(type(action_msg.data))
+        # # print(action_msg.data)
+
+        # self.act_pub.publish(action_msg)
         # print("self.n_act",self.n_act)
         # print("self.n_act.shape",self.n_act.shape)
         action = (self.n_act * act_std + act_mean)[0, :]
 
         # cmd freq is same as simulator? cf. in RL dt = 0.02
         momentum = 0.9
-        self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0])+momentum*self.command.target_pos_x-self.real_transition
-        self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1])+momentum*self.command.target_pos_y
+        self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.initial_position[0])+momentum*self.command.target_pos_x
+        self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.initial_position[1])+momentum*self.command.target_pos_y
         self.command.target_pos_z = (1-momentum)*(state.pos[2] + action[2])+momentum*self.command.target_pos_z
 
         self.command.target_vel_x = float((1-momentum)*(state.vel[0] + action[3])+momentum*self.command.target_vel_x)
@@ -197,8 +229,8 @@ class AgilePilotNode:
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
-        self.command.target_pos_x = self.state.pos[0]
-        self.command.target_pos_y = self.state.pos[1]
+        self.command.target_pos_x = self.state.pos[0]+self.initial_position[0]
+        self.command.target_pos_y = self.state.pos[1]+self.initial_position[1]
         self.command.target_pos_z = self.state.pos[2]
 
         self.command.target_vel_x = self.state.vel[0]
@@ -213,8 +245,8 @@ class AgilePilotNode:
     def stop_callback(self, data):
         print("Stay current position!")
         
-        self.command.target_pos_x = self.state.pos[0]
-        self.command.target_pos_y = self.state.pos[1]
+        self.command.target_pos_x = self.state.pos[0]+self.initial_position[0]
+        self.command.target_pos_y = self.state.pos[1]+self.initial_position[1]
         self.command.target_pos_z = self.state.pos[2]
 
         self.command.target_vel_x = 0
