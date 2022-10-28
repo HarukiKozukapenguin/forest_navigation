@@ -16,7 +16,7 @@ catkin build
 Execute:
 ```
 source ~/policy_ws/devel/setup.bash
-roslaunch forest_navigation navigator.launch
+roslaunch forest_navigation navigator.launch spawn_x:=-2.0
 ```
 In another terminal
 ```
