@@ -55,7 +55,9 @@ class AgilePilotNode:
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.world_box = np.array([-0.3, 4.2 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # should change when changing position
-        self.initial_position = np.array([-2, 0],dtype="float32")
+        x = rospy.get_param("~spawn_x")
+        y = rospy.get_param("~spawn_y")
+        self.initial_position = np.array([x, y],dtype="float32")
         self.learned_world_box = np.array([-10, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         self.rl_policy = None
         # should change depending on world flame's origin
