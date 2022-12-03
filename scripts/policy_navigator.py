@@ -196,11 +196,11 @@ class AgilePilotNode:
         momentum = 0.9
         self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.initial_position[0])+momentum*self.command.target_pos_x
         self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.initial_position[1])+momentum*self.command.target_pos_y
-        self.command.target_pos_z = (1-momentum)*(state.pos[2] + action[2])+momentum*self.command.target_pos_z
+        self.command.target_pos_z = 1.0
 
-        self.command.target_vel_x = float((1-momentum)*(state.vel[0] + action[3])+momentum*self.command.target_vel_x)
-        self.command.target_vel_y = float((1-momentum)*(state.vel[1] + action[4])+momentum*self.command.target_vel_y)
-        self.command.target_vel_z = float((1-momentum)*(state.vel[2] + action[5])+momentum*self.command.target_vel_z)
+        self.command.target_vel_x = float(0)
+        self.command.target_vel_y = float(0)
+        self.command.target_vel_z = float(0.0)
 
         # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
         self.command.target_yaw = (1-momentum)*(euler[2] + action[6])+momentum*self.command.target_yaw
