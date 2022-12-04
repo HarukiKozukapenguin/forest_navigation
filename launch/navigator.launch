@@ -8,7 +8,7 @@
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
 
   <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" >
-    <param name="ppo_path" value="$(find agile_multirotor)/gazebo_policy/RecurrentPPO_71" />
+    <param name="ppo_path" value="$(find agile_multirotor)/gazebo_policy/RecurrentPPO_108" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <!-- <param name="real_transition" type="double" value="2.0" if="$(arg real_machine)"  />

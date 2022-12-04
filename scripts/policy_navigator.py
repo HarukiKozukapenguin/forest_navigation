@@ -7,6 +7,7 @@ from std_msgs.msg import Empty
 from nav_msgs.msg import Odometry
 from aerial_robot_msgs.msg import ObstacleArray
 from aerial_robot_msgs.msg import FlightNav
+from sensor_msgs.msg import LaserScan
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Float64MultiArray
 # from sensor_msgs.msg import Image
@@ -59,6 +60,8 @@ class AgilePilotNode:
         y = rospy.get_param("~shift_y")
         self.initial_position = np.array([x, y],dtype="float32")
         self.learned_world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
+        self.theta_list = np.array([5,15,25,35,45,60,75,90])
+        self.max_detection_range = 10 #max_detection_range when leraning
         self.rl_policy = None
         # should change depending on world flame's origin
 
@@ -76,14 +79,14 @@ class AgilePilotNode:
         self.odom_sub = rospy.Subscriber("/" + quad_name + "/uav/cog/odom", Odometry, self.state_callback,
                                          queue_size=1, tcp_nodelay=True)
 
-        self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/polar_pixel", ObstacleArray,
+        self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/scan", LaserScan,
                                              self.obstacle_callback, queue_size=1, tcp_nodelay=True)
 
         # Command publishers
         self.linvel_pub = rospy.Publisher("/" + quad_name + "/uav/nav", FlightNav,
                                           queue_size=1)
-        self.obs_pub = rospy.Publisher("/" + quad_name + "/uav/observation", Float64MultiArray,
-                                          queue_size=1)
+        # self.obs_pub = rospy.Publisher("/" + quad_name + "/uav/observation", Float64MultiArray,
+        #                                   queue_size=1)
         self.act_pub = rospy.Publisher("/" + quad_name + "/uav/action", Float64MultiArray,
                                           queue_size=1)
         self.command = FlightNav()
@@ -114,8 +117,9 @@ class AgilePilotNode:
         if self.publish_commands:
             self.linvel_pub.publish(vel_msg)
 
-    def rl_example(self, state, obstacles, rl_policy=None):
-        obs_vec = np.array(obstacles.boxel)
+    def rl_example(self, state, obstacles: LaserScan, rl_policy=None):
+        obs_vec = self.LaserScan_to_obs_vec(obstacles)
+        # obs_vec = np.array(obstacles.boxel)
         # Convert state to vector observation
         goal_vel = self.goal_lin_vel
         world_box = self.learned_world_box
@@ -265,6 +269,31 @@ class AgilePilotNode:
     def normalize_obs(self, obs, obs_mean, obs_var):
         return (obs - obs_mean) / np.sqrt(obs_var + 1e-8)
 
+    def LaserScan_to_obs_vec(self, obstacles: LaserScan):
+        obstacle_length = len(obstacles.ranges)
+        print("obstacle_length: ",obstacle_length)
+        angle_min = obstacles.angle_min
+        angle_max = obstacles.angle_max
+        rad_list = []
+        for theta in self.theta_list[::-1]:
+            deg = -theta
+            rad_list.append(deg*np.pi/180)
+        for theta in self.theta_list:
+            deg = theta
+            rad_list.append(deg*np.pi/180)
+        obs_vec = np.empty(0)
+        for rad in rad_list:
+            index = int(((rad-angle_min)/(angle_max-angle_min))*obstacle_length)
+            length = obstacles.ranges[int(index)]
+            if length<=self.max_detection_range:
+                length/=self.max_detection_range
+            if length>self.max_detection_range:
+                #include inf (this means there are no data, but I limit this case is larger than range_max)
+                length=1
+            obs_vec = np.append(obs_vec,length)
+        print("obs_vec: ",obs_vec)
+        return obs_vec
+        
 
 if __name__ == '__main__':
     agile_pilot_node = AgilePilotNode()
