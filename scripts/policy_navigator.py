@@ -43,7 +43,7 @@ class AgileQuadState:
 
 
 class AgilePilotNode:
-    def __init__(self, vision_based=False):
+    def __init__(self, vision_based=True):
         print("Initializing agile_pilot_node...")
         rospy.init_node('policy_navigator', anonymous=False)
 
@@ -105,7 +105,7 @@ class AgilePilotNode:
         self.state = AgileQuadState(state_data,self.initial_position)
 
     def obstacle_callback(self, obs_data):
-        if self.vision_based:
+        if not self.vision_based:
             return
         if self.state is None:
             return
@@ -115,6 +115,10 @@ class AgilePilotNode:
         vel_msg = self.rl_example(state=self.state, obstacles=obs_data, rl_policy=self.rl_policy)
 
         if self.publish_commands:
+            # debug to show whith direction quadrotor go in given position
+            # print("x_state: ",self.state.pos[0])
+            # print("x_direction: ",vel_msg.target_pos_x-(self.state.pos[0]+self.initial_position[0]))
+            # print("y_direction: ",vel_msg.target_pos_y-(self.state.pos[1]+self.initial_position[1]))
             self.linvel_pub.publish(vel_msg)
 
     def rl_example(self, state, obstacles: LaserScan, rl_policy=None):
