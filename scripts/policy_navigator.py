@@ -96,7 +96,7 @@ class AgilePilotNode:
 
         self.lstm_states = None
 
-        self.n_act = np.zeros(3)
+        self.n_act = np.zeros(2)
 
         print("Initialization completed!")
 
@@ -161,9 +161,9 @@ class AgilePilotNode:
             normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
 
         obs = np.concatenate([
-            self.n_act.reshape((3)), goal_vel, rotation_matrix, state.pos, normalized_p, state.vel, obs_vec, state.omega,
+            self.n_act.reshape((2)), state.pos, state.vel,
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1],
-            world_box[4] - state.pos[2] , world_box[5] - state.pos[2]])
+            world_box[4] - state.pos[2] , world_box[5] - state.pos[2]]),obs_vec
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
@@ -210,7 +210,7 @@ class AgilePilotNode:
         self.command.target_vel_z = float(0.0)
 
         # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
-        self.command.target_yaw = (1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
+        self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
 
         return self.command
     
@@ -219,8 +219,8 @@ class AgilePilotNode:
         policy_dir = policy_path  + "/policy.pth"
         rms_dir = policy_path + "/rms.npz"
 
-        act_mean = np.array([0.0,0.0, 0.0])[np.newaxis, :] 
-        act_std = np.array([1.0, 1.0, 0.1])[np.newaxis, :] 
+        act_mean = np.array([0.0, 0.0])[np.newaxis, :] 
+        act_std = np.array([1.0, 1.0])[np.newaxis, :] 
 
         rms_data = np.load(rms_dir)
         obs_mean = np.mean(rms_data["mean"], axis=0)
@@ -294,7 +294,7 @@ class AgilePilotNode:
                 #include inf (this means there are no data, but I limit this case is larger than range_max)
                 length=1
             obs_vec = np.append(obs_vec,length)
-            obs_vec = np.append(obs_vec,length)
+            # obs_vec = np.append(obs_vec,length) 
         # print("conversion_time: ", finish-start) <0.001s
         return obs_vec
         
