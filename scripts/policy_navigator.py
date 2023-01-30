@@ -200,7 +200,7 @@ class AgilePilotNode:
         action = (self.n_act * act_std + act_mean)[0, :]
 
         # cmd freq is same as simulator? cf. in RL dt = 0.02
-        momentum = 0.9
+        momentum = 0.0
         self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.initial_position[0])+momentum*self.command.target_pos_x
         self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.initial_position[1])+momentum*self.command.target_pos_y
         self.command.target_pos_z = 1.0
