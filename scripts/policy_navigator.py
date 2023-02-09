@@ -43,12 +43,12 @@ class AgileQuadState:
 
 
 class AgilePilotNode:
-    def __init__(self, vision_based=True):
+    def __init__(self):
         print("Initializing agile_pilot_node...")
         rospy.init_node('policy_navigator', anonymous=False)
 
-        self.vision_based = vision_based
         self.ppo_path = rospy.get_param("~ppo_path")
+        self.get_from_hokuyo = rospy.get_param("~hokuyo")
         # self.real_transition = rospy.get_param("~real_transition")
         # print(self.real_transition)
         self.publish_commands = False
@@ -79,8 +79,12 @@ class AgilePilotNode:
         self.odom_sub = rospy.Subscriber("/" + quad_name + "/uav/cog/odom", Odometry, self.state_callback,
                                          queue_size=1, tcp_nodelay=True)
 
-        self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/scan", LaserScan,
-                                             self.obstacle_callback, queue_size=1, tcp_nodelay=True)
+        if self.get_from_hokuyo:
+            self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/scan", LaserScan,
+                                                 self.obstacle_callback, queue_size=1, tcp_nodelay=True)
+        else:
+            self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/polar_pixel", ObstacleArray,
+                                                self.obstacle_callback, queue_size=1, tcp_nodelay=True)
 
         # Command publishers
         self.linvel_pub = rospy.Publisher("/" + quad_name + "/uav/nav", FlightNav,
@@ -106,8 +110,6 @@ class AgilePilotNode:
         self.state = AgileQuadState(state_data,self.initial_position)
 
     def obstacle_callback(self, obs_data):
-        if not self.vision_based:
-            return
         if self.state is None:
             return
         # self.rl_policy = None
@@ -122,8 +124,11 @@ class AgilePilotNode:
             # print("y_direction: ",vel_msg.target_pos_y-(self.state.pos[1]+self.initial_position[1]))
             self.linvel_pub.publish(vel_msg)
 
-    def rl_example(self, state, obstacles: LaserScan, rl_policy=None):
-        obs_vec = self.LaserScan_to_obs_vec(obstacles)
+    def rl_example(self, state, obstacles, rl_policy=None):
+        if self.get_from_hokuyo:
+            obs_vec = self.LaserScan_to_obs_vec(obstacles)
+        else:
+            obs_vec = np.array(obstacles.boxel)
         log_obs_vec = np.log(obs_vec)
         # obs_vec = np.array(obstacles.boxel)
         # Convert state to vector observation
