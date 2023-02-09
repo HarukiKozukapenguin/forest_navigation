@@ -95,6 +95,7 @@ class AgilePilotNode:
         self.command.pos_z_nav_mode = 4
 
         self.lstm_states = None
+        self.body_size = 0.25  #radius of quadrotor(0.25~0.5)
 
         self.n_act = np.zeros(2)
 
@@ -161,9 +162,9 @@ class AgilePilotNode:
             normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
 
         obs = np.concatenate([
-            self.n_act.reshape((2)), state.pos, state.vel,
+            self.n_act.reshape((2)), state.pos, state.vel, rotation_matrix, state.omega,
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1],
-            world_box[4] - state.pos[2] , world_box[5] - state.pos[2]]),obs_vec
+            world_box[4] - state.pos[2] , world_box[5] - state.pos[2]]), obs_vec, np.array([self.body_size])
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
@@ -198,6 +199,8 @@ class AgilePilotNode:
         # print("self.n_act",self.n_act)
         # print("self.n_act.shape",self.n_act.shape)
         action = (self.n_act * act_std + act_mean)[0, :]
+
+        print("action: ", action)
 
         # cmd freq is same as simulator? cf. in RL dt = 0.02
         momentum = 0.0
@@ -293,6 +296,7 @@ class AgilePilotNode:
             if length>self.max_detection_range:
                 #include inf (this means there are no data, but I limit this case is larger than range_max)
                 length=1
+            length-=self.body_size/self.max_detection_range
             obs_vec = np.append(obs_vec,length)
             # obs_vec = np.append(obs_vec,length) 
         # print("conversion_time: ", finish-start) <0.001s
