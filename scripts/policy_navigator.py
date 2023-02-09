@@ -164,7 +164,7 @@ class AgilePilotNode:
         obs = np.concatenate([
             self.n_act.reshape((2)), state.pos, state.vel, rotation_matrix, state.omega,
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1],
-            world_box[4] - state.pos[2] , world_box[5] - state.pos[2]]), obs_vec, np.array([self.body_size])
+            world_box[4] - state.pos[2] , world_box[5] - state.pos[2]]), np.array([self.body_size]), obs_vec
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
