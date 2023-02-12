@@ -60,7 +60,8 @@ class AgilePilotNode:
         y = rospy.get_param("~shift_y")
         self.initial_position = np.array([x, y],dtype="float32")
         self.learned_world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
-        self.theta_list = np.array([5,15,25,35,45,60,75,90])
+        # last value of theta_list is 134 for the range of the quadrotor
+        self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120, 134])
         self.max_detection_range = 10 #max_detection_range when leraning
         self.rl_policy = None
         # should change depending on world flame's origin
