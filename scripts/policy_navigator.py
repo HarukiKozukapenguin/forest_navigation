@@ -101,6 +101,7 @@ class AgilePilotNode:
 
         self.lstm_states = None
         self.body_size = 0.25  #radius of quadrotor(0.25~0.5)
+        self.beta = 0.1 # min distance for linearization
 
         self.n_act = np.zeros(2)
 
@@ -130,7 +131,9 @@ class AgilePilotNode:
             obs_vec = self.LaserScan_to_obs_vec(obstacles)
         else:
             obs_vec = np.array(obstacles.boxel)
-        log_obs_vec = np.log(obs_vec)
+        a = -1/self.beta
+        b = 1-np.log(self.beta)
+        log_obs_vec = np.where(obs_vec < self.beta, a*obs_vec+b, np.log(obs_vec))
         # obs_vec = np.array(obstacles.boxel)
         # Convert state to vector observation
         goal_vel = self.goal_lin_vel
