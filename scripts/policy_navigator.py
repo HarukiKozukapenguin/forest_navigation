@@ -133,7 +133,7 @@ class AgilePilotNode:
             obs_vec = np.array(obstacles.boxel)
         a = -1/self.beta
         b = 1-np.log(self.beta)
-        log_obs_vec = np.where(obs_vec < self.beta, a*obs_vec+b, np.log(obs_vec))
+        log_obs_vec = np.where(obs_vec < self.beta, a*obs_vec+b, -np.log(obs_vec))
         # obs_vec = np.array(obstacles.boxel)
         # Convert state to vector observation
         goal_vel = self.goal_lin_vel
