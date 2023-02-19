@@ -112,12 +112,17 @@ class AgilePilotNode:
         self.state = AgileQuadState(state_data,self.initial_position)
 
     def obstacle_callback(self, obs_data):
+        # obstacle conversion depending on the type of sensor
+        if self.get_from_hokuyo:
+            obs_vec = self.LaserScan_to_obs_vec(obs_data)
+        else:
+            obs_vec = np.array(obs_data.boxel)
         if self.state is None:
             return
         # self.rl_policy = None
         if self.ppo_path is not None and self.rl_policy is None:
             self.rl_policy = self.load_rl_policy(self.ppo_path)
-        vel_msg = self.rl_example(state=self.state, obstacles=obs_data, rl_policy=self.rl_policy)
+        vel_msg = self.rl_example(state=self.state, obstacles=obs_vec, rl_policy=self.rl_policy)
 
         if self.publish_commands:
             # debug to show whith direction quadrotor go in given position
@@ -126,11 +131,7 @@ class AgilePilotNode:
             # print("y_direction: ",vel_msg.target_pos_y-(self.state.pos[1]+self.initial_position[1]))
             self.linvel_pub.publish(vel_msg)
 
-    def rl_example(self, state, obstacles, rl_policy=None):
-        if self.get_from_hokuyo:
-            obs_vec = self.LaserScan_to_obs_vec(obstacles)
-        else:
-            obs_vec = np.array(obstacles.boxel)
+    def rl_example(self, state, obs_vec, rl_policy=None):
         a = -1/self.beta
         b = 1-np.log(self.beta)
         log_obs_vec = np.where(obs_vec < self.beta, a*obs_vec+b, -np.log(obs_vec))
