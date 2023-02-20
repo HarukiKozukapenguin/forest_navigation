@@ -122,9 +122,9 @@ class AgilePilotNode:
     def obstacle_callback(self, obs_data):
         # obstacle conversion depending on the type of sensor
         if self.get_from_hokuyo:
-            obs_vec = self.LaserScan_to_obs_vec(obs_data)
+            obs_vec: np.array  = self.LaserScan_to_obs_vec(obs_data)
         else:
-            obs_vec = np.array(obs_data.boxel)
+            obs_vec: np.array = np.array(obs_data.boxel)
         if self.state is None:
             return
         # self.rl_policy = None
