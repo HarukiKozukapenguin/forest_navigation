@@ -52,6 +52,7 @@ class AgilePilotNode:
         # self.real_transition = rospy.get_param("~real_transition")
         # print(self.real_transition)
         self.publish_commands = False
+        self.stop_navigation = False
         self.state = None
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.world_box = np.array([-0.3, 4.2 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
@@ -62,7 +63,10 @@ class AgilePilotNode:
         self.learned_world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
         self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120, 134])
+        self.theta_num = len(self.theta_list)
         self.max_detection_range = 10 #max_detection_range when leraning
+        # checked several rosbag, and I found that the normal flight rarely exceeds the tilts over 30 degrees
+        self.max_tilt = np.deg2rad(30)
         self.rl_policy = None
         # should change depending on world flame's origin
 
@@ -94,6 +98,7 @@ class AgilePilotNode:
         #                                   queue_size=1)
         self.act_pub = rospy.Publisher("/" + quad_name + "/uav/action", Float64MultiArray,
                                           queue_size=1)
+        self.land_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/land', Empty, queue_size=1)
         self.command = FlightNav()
         self.command.target = 1
         self.command.pos_xy_nav_mode = 4
@@ -101,6 +106,9 @@ class AgilePilotNode:
 
         self.lstm_states = None
         self.body_size = 0.25  #radius of quadrotor(0.25~0.5)
+        self.collision_distance = 0.10
+        self.dist_backup = 0.10
+        self.landing_dist_threshold = 0.05
         self.beta = 0.1 # min distance for linearization
 
         self.n_act = np.zeros(2)
@@ -120,6 +128,22 @@ class AgilePilotNode:
         if self.state is None:
             return
         # self.rl_policy = None
+
+        # when there are bad collision before
+        if self.stop_navigation and self.is_landing():
+            self.emergency_landing()
+            print("Begin emergency landing!")
+            return
+        if self.stop_navigation:
+            return
+        if self.bad_collision(obs_data):
+            self.stop_navigation = True
+            self.publish_commands = False
+            vel_msg = self.landing_position_setting(obs_data)
+            self.linvel_pub.publish(vel_msg)
+            print("Move to emergency landing poisiton!")
+            return
+        # when there are no bad collision before
         if self.ppo_path is not None and self.rl_policy is None:
             self.rl_policy = self.load_rl_policy(self.ppo_path)
         vel_msg = self.rl_example(state=self.state, obs_vec=obs_vec, rl_policy=self.rl_policy)
@@ -311,6 +335,31 @@ class AgilePilotNode:
             # obs_vec = np.append(obs_vec,length) 
         # print("conversion_time: ", finish-start) <0.001s
         return obs_vec
+    
+    def bad_collision(self, obs_data):
+        rotation_matrix = R.from_quat(self.state.att)
+        self.yaw = rotation_matrix.as_euler('zyx', degrees=True)
+        self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
+        return self.max_tilt < self.tilt and np.min(obs_data) < self.body_size + self.collision_distance
+    
+    def landing_position_setting(self, obs_data):
+        # set the opposite direction of the nearest obstacle of the landing position
+        dist = self.body_size * (1-np.cos(self.tilt)) + self.dist_backup
+        min_index = np.argmin(obs_data)
+        direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num]
+
+        self.command.target_pos_x = self.state.pos[0]+self.initial_position[0] + dist*np.cos(self.yaw + direction)
+        self.command.target_pos_y = self.state.pos[1]+self.initial_position[1] + dist*np.sin(self.yaw + direction)
+    
+    def is_landing(self):
+        diff = np.array([self.state.pos[0]+self.initial_position[0] - self.command.target_pos_x, 
+            self.state.pos[1]+self.initial_position[1] - self.command.target_pos_y])
+        return self.landing_dist_threshold < np.norm(diff)
+
+
+    def emergency_landing(self):
+        self.land_pub.publish(Empty())
+
         
 
 if __name__ == '__main__':
