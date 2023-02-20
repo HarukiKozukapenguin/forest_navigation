@@ -338,7 +338,7 @@ class AgilePilotNode:
     
     def bad_collision(self, obs_vec):
         rotation_matrix = R.from_quat(self.state.att)
-        self.yaw = rotation_matrix.as_euler('zyx', degrees=True)
+        self.yaw: np.float32 = rotation_matrix.as_euler('xyz', degrees=True)[2] # deg
         self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
         return self.max_tilt < self.tilt and np.min(obs_vec) < self.body_size + self.collision_distance
     
