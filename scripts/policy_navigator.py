@@ -122,7 +122,7 @@ class AgilePilotNode:
         # self.rl_policy = None
         if self.ppo_path is not None and self.rl_policy is None:
             self.rl_policy = self.load_rl_policy(self.ppo_path)
-        vel_msg = self.rl_example(state=self.state, obstacles=obs_vec, rl_policy=self.rl_policy)
+        vel_msg = self.rl_example(state=self.state, obs_vec=obs_vec, rl_policy=self.rl_policy)
 
         if self.publish_commands:
             # debug to show whith direction quadrotor go in given position
