@@ -346,10 +346,10 @@ class AgilePilotNode:
         # set the opposite direction of the nearest obstacle of the landing position
         dist = self.body_size * (1-np.cos(self.tilt)) + self.dist_backup
         min_index = np.argmin(obs_vec)
-        direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num]
+        direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num] # deg
+        self.command.target_pos_x = self.state.pos[0]+self.initial_position[0] + dist*np.cos(np.deg2rad(self.yaw + direction))
+        self.command.target_pos_y = self.state.pos[1]+self.initial_position[1] + dist*np.sin(np.deg2rad(self.yaw + direction))
 
-        self.command.target_pos_x = self.state.pos[0]+self.initial_position[0] + dist*np.cos(self.yaw + direction)
-        self.command.target_pos_y = self.state.pos[1]+self.initial_position[1] + dist*np.sin(self.yaw + direction)
     
     def is_landing(self):
         diff = np.array([self.state.pos[0]+self.initial_position[0] - self.command.target_pos_x, 
