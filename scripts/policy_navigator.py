@@ -136,10 +136,10 @@ class AgilePilotNode:
             return
         if self.stop_navigation:
             return
-        if self.bad_collision(obs_data):
+        if self.bad_collision(obs_vec):
             self.stop_navigation = True
             self.publish_commands = False
-            vel_msg = self.landing_position_setting(obs_data)
+            vel_msg = self.landing_position_setting(obs_vec)
             self.linvel_pub.publish(vel_msg)
             print("Move to emergency landing poisiton!")
             return
@@ -336,16 +336,16 @@ class AgilePilotNode:
         # print("conversion_time: ", finish-start) <0.001s
         return obs_vec
     
-    def bad_collision(self, obs_data):
+    def bad_collision(self, obs_vec):
         rotation_matrix = R.from_quat(self.state.att)
         self.yaw = rotation_matrix.as_euler('zyx', degrees=True)
         self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
-        return self.max_tilt < self.tilt and np.min(obs_data) < self.body_size + self.collision_distance
+        return self.max_tilt < self.tilt and np.min(obs_vec) < self.body_size + self.collision_distance
     
-    def landing_position_setting(self, obs_data):
+    def landing_position_setting(self, obs_vec):
         # set the opposite direction of the nearest obstacle of the landing position
         dist = self.body_size * (1-np.cos(self.tilt)) + self.dist_backup
-        min_index = np.argmin(obs_data)
+        min_index = np.argmin(obs_vec)
         direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num]
 
         self.command.target_pos_x = self.state.pos[0]+self.initial_position[0] + dist*np.cos(self.yaw + direction)
