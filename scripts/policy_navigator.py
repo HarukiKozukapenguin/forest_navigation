@@ -99,6 +99,7 @@ class AgilePilotNode:
         self.act_pub = rospy.Publisher("/" + quad_name + "/uav/action", Float64MultiArray,
                                           queue_size=1)
         self.land_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/land', Empty, queue_size=1)
+        self.force_landing_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/force_landing', Empty, queue_size=1)
         self.command = FlightNav()
         self.command.target = 1
         self.command.pos_xy_nav_mode = 4
@@ -110,6 +111,7 @@ class AgilePilotNode:
         self.dist_backup = 0.10
         self.landing_dist_threshold = 0.05
         self.beta = 0.1 # min distance for linearization
+        self.force_landing_dist_threshold = 0.40
 
         self.n_act = np.zeros(2)
 
@@ -131,6 +133,10 @@ class AgilePilotNode:
 
         # when there are bad collision before
         self.calc_tilt()
+        if self.stop_navigation and self.is_force_landing():
+            print("Begin force landing!")
+            self.force_landing_pub.publish(Empty())
+            return
         if self.stop_navigation and self.is_landing():
             self.landing()
             print("Begin emergency landing!")
@@ -368,6 +374,11 @@ class AgilePilotNode:
 
     def landing(self):
         self.land_pub.publish(Empty())
+
+    def is_force_landing(self):
+        diff = np.array([self.state.pos[0]+self.initial_position[0] - self.command.target_pos_x,
+            self.state.pos[1]+self.initial_position[1] - self.command.target_pos_y])
+        return self.force_landing_dist_threshold < np.linalg.norm(diff)
 
         
 
