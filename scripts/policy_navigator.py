@@ -66,7 +66,7 @@ class AgilePilotNode:
         self.theta_num = len(self.theta_list)
         self.max_detection_range = 10 #max_detection_range when leraning
         # checked several rosbag, and I found that the normal flight rarely exceeds the tilts over 30 degrees
-        self.max_tilt = np.deg2rad(30)
+        self.land_tilt = np.deg2rad(20)
         self.rl_policy = None
         # should change depending on world flame's origin
 
@@ -130,6 +130,7 @@ class AgilePilotNode:
         # self.rl_policy = None
 
         # when there are bad collision before
+        self.calc_tilt()
         if self.stop_navigation and self.is_landing():
             self.landing()
             print("Begin emergency landing!")
@@ -336,12 +337,13 @@ class AgilePilotNode:
             # obs_vec = np.append(obs_vec,length) 
         # print("conversion_time: ", finish-start) <0.001s
         return obs_vec
-    
-    def bad_collision(self, obs_vec):
+    def calc_tilt(self):
         rotation_matrix = R.from_quat(self.state.att)
         self.yaw: np.float32 = rotation_matrix.as_euler('xyz', degrees=True)[2] # deg
         self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
-        return self.max_tilt < self.tilt and np.min(obs_vec) < self.body_size + self.collision_distance
+
+    def bad_collision(self, obs_vec):
+        return self.land_tilt < self.tilt and np.min(obs_vec) < self.body_size + self.collision_distance
     
     def landing_position_setting(self, obs_vec):
         # set the opposite direction of the nearest obstacle of the landing position
