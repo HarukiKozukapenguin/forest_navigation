@@ -360,7 +360,7 @@ class AgilePilotNode:
     def is_landing(self):
         diff = np.array([self.state.pos[0]+self.initial_position[0] - self.command.target_pos_x, 
             self.state.pos[1]+self.initial_position[1] - self.command.target_pos_y])
-        return self.landing_dist_threshold < np.linalg.norm(diff)
+        return np.linalg.norm(diff) < self.landing_dist_threshold
 
 
     def emergency_landing(self):
