@@ -131,7 +131,7 @@ class AgilePilotNode:
 
         # when there are bad collision before
         if self.stop_navigation and self.is_landing():
-            self.emergency_landing()
+            self.landing()
             print("Begin emergency landing!")
             return
         if self.stop_navigation:
@@ -363,7 +363,7 @@ class AgilePilotNode:
         return np.linalg.norm(diff) < self.landing_dist_threshold
 
 
-    def emergency_landing(self):
+    def landing(self):
         self.land_pub.publish(Empty())
 
         
