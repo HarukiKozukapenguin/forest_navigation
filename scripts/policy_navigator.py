@@ -66,6 +66,7 @@ class AgilePilotNode:
         self.theta_num = len(self.theta_list)
         self.max_detection_range = 10 #max_detection_range when leraning
         # checked several rosbag, and I found that the normal flight rarely exceeds the tilts over 30 degrees
+        self.max_halt_tilt = np.deg2rad(40)
         self.land_tilt = np.deg2rad(20)
         self.rl_policy = None
         # should change depending on world flame's origin
@@ -100,6 +101,7 @@ class AgilePilotNode:
                                           queue_size=1)
         self.land_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/land', Empty, queue_size=1)
         self.force_landing_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/force_landing', Empty, queue_size=1)
+        self.halt_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/halt', Empty, queue_size=1)
         self.command = FlightNav()
         self.command.target = 1
         self.command.pos_xy_nav_mode = 4
@@ -133,6 +135,10 @@ class AgilePilotNode:
 
         # when there are bad collision before
         self.calc_tilt()
+        if self.is_halt(obs_vec):
+            print("Begin halt!")
+            self.halt_pub.publish(Empty())
+            return
         if self.stop_navigation and self.is_force_landing():
             print("Begin force landing!")
             self.force_landing_pub.publish(Empty())
@@ -374,6 +380,9 @@ class AgilePilotNode:
 
     def landing(self):
         self.land_pub.publish(Empty())
+
+    def is_halt(self,obs_vec):
+        return self.max_halt_tilt < self.tilt and np.min(obs_vec) < self.body_size + self.collision_distance
 
     def is_force_landing(self):
         diff = np.array([self.state.pos[0]+self.initial_position[0] - self.command.target_pos_x,
