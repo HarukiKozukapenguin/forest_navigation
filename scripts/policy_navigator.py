@@ -73,7 +73,18 @@ class AgilePilotNode:
 
         quad_name = 'multirotor'
 
-        
+        self.command = FlightNav()
+        self.command.target = 1
+        self.command.pos_xy_nav_mode = 4
+        self.command.pos_z_nav_mode = 4
+
+        self.lstm_states = None
+        self.body_size = 0.25  #radius of quadrotor(0.25~0.5)
+        self.collision_distance = 0.10
+        self.dist_backup = 0.10
+        self.landing_dist_threshold = 0.05
+        self.force_landing_dist_threshold = 0.40
+        self.beta = 0.002 # min distance for linearization
         # Logic subscribers
         self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
                                           queue_size=1, tcp_nodelay=True)
@@ -102,18 +113,6 @@ class AgilePilotNode:
         self.land_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/land', Empty, queue_size=1)
         self.force_landing_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/force_landing', Empty, queue_size=1)
         self.halt_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/halt', Empty, queue_size=1)
-        self.command = FlightNav()
-        self.command.target = 1
-        self.command.pos_xy_nav_mode = 4
-        self.command.pos_z_nav_mode = 4
-
-        self.lstm_states = None
-        self.body_size = 0.25  #radius of quadrotor(0.25~0.5)
-        self.collision_distance = 0.10
-        self.dist_backup = 0.10
-        self.landing_dist_threshold = 0.05
-        self.beta = 0.1 # min distance for linearization
-        self.force_landing_dist_threshold = 0.40
 
         self.n_act = np.zeros(2)
 
