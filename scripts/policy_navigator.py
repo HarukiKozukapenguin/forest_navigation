@@ -79,7 +79,7 @@ class AgilePilotNode:
         self.command.pos_z_nav_mode = 4
 
         self.lstm_states = None
-        self.body_size = 0.25  #radius of quadrotor(0.25~0.5)
+        self.body_size = rospy.get_param("~body_size")  #radius of quadrotor(0.25~0.5)
         self.collision_distance = 0.10
         self.dist_backup = 0.10
         self.landing_dist_threshold = 0.05
