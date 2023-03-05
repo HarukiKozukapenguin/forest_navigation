@@ -245,6 +245,7 @@ class AgilePilotNode:
         # self.act_pub.publish(action_msg)
         # print("self.n_act",self.n_act)
         # print("self.n_act.shape",self.n_act.shape)
+        self.n_act = np.array([1.0,0.0])
         action = (self.n_act * act_std + act_mean)[0, :]
 
         print("action: ", action)
