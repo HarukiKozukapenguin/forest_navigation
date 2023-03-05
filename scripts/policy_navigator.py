@@ -59,7 +59,7 @@ class AgilePilotNode:
         # should change when changing position
         x = rospy.get_param("~shift_x")
         y = rospy.get_param("~shift_y")
-        self.initial_position = np.array([x, y],dtype="float32")
+        self.translation_position = np.array([x, y],dtype="float32")
         self.learned_world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
         self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120, 134])
@@ -120,7 +120,7 @@ class AgilePilotNode:
 
 
     def state_callback(self, state_data):
-        self.state = AgileQuadState(state_data,self.initial_position)
+        self.state = AgileQuadState(state_data,self.translation_position)
 
     def obstacle_callback(self, obs_data):
         # obstacle conversion depending on the type of sensor
@@ -163,8 +163,8 @@ class AgilePilotNode:
         if self.publish_commands:
             # debug to show whith direction quadrotor go in given position
             # print("x_state: ",self.state.pos[0])
-            # print("x_direction: ",vel_msg.target_pos_x-(self.state.pos[0]+self.initial_position[0]))
-            # print("y_direction: ",vel_msg.target_pos_y-(self.state.pos[1]+self.initial_position[1]))
+            # print("x_direction: ",vel_msg.target_pos_x-(self.state.pos[0]+self.translation_position[0]))
+            # print("y_direction: ",vel_msg.target_pos_y-(self.state.pos[1]+self.translation_position[1]))
             self.linvel_pub.publish(vel_msg)
 
     def rl_example(self, state, obs_vec, rl_policy=None):
@@ -192,7 +192,7 @@ class AgilePilotNode:
             if not inside_range:
                 print("Out of range!")
                 self.force_landing_pub.publish(Empty())
-            self.command.target_pos_x = self.world_box[1]+self.initial_position[0]-0.8
+            self.command.target_pos_x = self.world_box[1]+self.translation_position[0]-0.8
             self.command.target_pos_y = 0
             self.command.target_pos_z = state.pos[2]
 
@@ -251,8 +251,8 @@ class AgilePilotNode:
 
         # cmd freq is same as simulator? cf. in RL dt = 0.02
         momentum = 0.0
-        self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.initial_position[0])+momentum*self.command.target_pos_x
-        self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.initial_position[1])+momentum*self.command.target_pos_y
+        self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.translation_position[0])+momentum*self.command.target_pos_x
+        self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.translation_position[1])+momentum*self.command.target_pos_y
         self.command.target_pos_z = 1.0
 
         self.command.target_vel_x = float(0)
@@ -288,8 +288,8 @@ class AgilePilotNode:
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
-        self.command.target_pos_x = self.state.pos[0]+self.initial_position[0]
-        self.command.target_pos_y = self.state.pos[1]+self.initial_position[1]
+        self.command.target_pos_x = self.state.pos[0]+self.translation_position[0]
+        self.command.target_pos_y = self.state.pos[1]+self.translation_position[1]
         self.command.target_pos_z = self.state.pos[2]
 
         self.command.target_vel_x = self.state.vel[0]
@@ -304,8 +304,8 @@ class AgilePilotNode:
     def stop_callback(self, data):
         print("Stay current position!")
         
-        self.command.target_pos_x = self.state.pos[0]+self.initial_position[0]
-        self.command.target_pos_y = self.state.pos[1]+self.initial_position[1]
+        self.command.target_pos_x = self.state.pos[0]+self.translation_position[0]
+        self.command.target_pos_y = self.state.pos[1]+self.translation_position[1]
         self.command.target_pos_z = self.state.pos[2]
 
         self.command.target_vel_x = 0
@@ -361,8 +361,8 @@ class AgilePilotNode:
         dist = self.body_size * (1-np.cos(self.tilt)) + self.dist_backup
         min_index = np.argmin(obs_vec)
         direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num] # deg
-        self.command.target_pos_x = self.state.pos[0]+self.initial_position[0] - dist*np.cos(np.deg2rad(self.yaw + direction))
-        self.command.target_pos_y = self.state.pos[1]+self.initial_position[1] - dist*np.sin(np.deg2rad(self.yaw + direction)) #move to the opposite direction of the nearest obstacle
+        self.command.target_pos_x = self.state.pos[0]+self.translation_position[0] - dist*np.cos(np.deg2rad(self.yaw + direction))
+        self.command.target_pos_y = self.state.pos[1]+self.translation_position[1] - dist*np.sin(np.deg2rad(self.yaw + direction)) #move to the opposite direction of the nearest obstacle
         self.command.target_pos_z = 1.0
         self.command.target_vel_x = float(0)
         self.command.target_vel_y = float(0)
@@ -372,8 +372,8 @@ class AgilePilotNode:
 
     
     def is_landing(self):
-        diff = np.array([self.state.pos[0]+self.initial_position[0] - self.command.target_pos_x, 
-            self.state.pos[1]+self.initial_position[1] - self.command.target_pos_y])
+        diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,
+            self.state.pos[1]+self.translation_position[1] - self.command.target_pos_y])
         return np.linalg.norm(diff) < self.landing_dist_threshold
 
 
@@ -384,8 +384,8 @@ class AgilePilotNode:
         return self.max_halt_tilt < self.tilt and np.min(obs_vec) < self.body_size + self.collision_distance
 
     def is_force_landing(self):
-        diff = np.array([self.state.pos[0]+self.initial_position[0] - self.command.target_pos_x,
-            self.state.pos[1]+self.initial_position[1] - self.command.target_pos_y])
+        diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,
+            self.state.pos[1]+self.translation_position[1] - self.command.target_pos_y])
         return self.force_landing_dist_threshold < np.linalg.norm(diff)
 
         
