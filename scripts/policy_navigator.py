@@ -66,8 +66,8 @@ class AgilePilotNode:
         self.theta_num = len(self.theta_list)
         self.max_detection_range = 10 #max_detection_range when leraning
         # checked several rosbag, and I found that the normal flight rarely exceeds the tilts over 30 degrees
-        self.max_halt_tilt = np.deg2rad(40)
-        self.land_tilt = np.deg2rad(20)
+        self.max_halt_tilt = np.deg2rad(60)
+        self.land_tilt = np.deg2rad(40)
         self.rl_policy = None
         # should change depending on world flame's origin
 
