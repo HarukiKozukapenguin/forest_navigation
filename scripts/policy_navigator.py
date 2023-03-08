@@ -85,7 +85,7 @@ class AgilePilotNode:
         self.landing_dist_threshold = 0.05
         self.force_landing_dist_threshold = 0.40
         self.beta = 0.002 # min distance for linearization
-        learning_max_gain = 8.0
+        learning_max_gain = 10.0
         exec_max_gain = 3.0
         self.vel_conversion = 1/np.sqrt(exec_max_gain/learning_max_gain)
         # Logic subscribers
