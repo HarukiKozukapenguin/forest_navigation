@@ -85,6 +85,9 @@ class AgilePilotNode:
         self.landing_dist_threshold = 0.05
         self.force_landing_dist_threshold = 0.40
         self.beta = 0.002 # min distance for linearization
+        learning_max_gain = 8.0
+        exec_max_gain = 3.0
+        self.vel_conversion = 1/np.sqrt(exec_max_gain/learning_max_gain)
         # Logic subscribers
         self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
                                           queue_size=1, tcp_nodelay=True)
@@ -210,7 +213,7 @@ class AgilePilotNode:
             normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
 
         obs = np.concatenate([
-            self.n_act.reshape((2)), state.pos[0:2], state.vel[0:2], rotation_matrix, state.omega,
+            self.n_act.reshape((2)), state.pos[0:2], state.vel[0:2]*self.vel_conversion, rotation_matrix, state.omega,
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_size]), log_obs_vec
     ], axis=0).astype(np.float64)
 
