@@ -273,7 +273,7 @@ class AgilePilotNode:
         rms_dir = policy_path + "/rms.npz"
 
         act_mean = np.array([0.0, 0.0])[np.newaxis, :] 
-        act_std = np.array([1.0, 1.0])[np.newaxis, :] 
+        act_std = np.array([0.6, 0.6])[np.newaxis, :]
 
         rms_data = np.load(rms_dir)
         obs_mean = np.mean(rms_data["mean"], axis=0)
