@@ -71,7 +71,7 @@ class AgilePilotNode:
         self.rl_policy = None
         # should change depending on world flame's origin
 
-        quad_name = 'multirotor'
+        quad_name = rospy.get_param("~robot_ns")
 
         self.command = FlightNav()
         self.command.target = 1

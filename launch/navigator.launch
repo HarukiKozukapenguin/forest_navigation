@@ -15,6 +15,7 @@
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="body_size" type="double" value="$(arg body_size)" />
+    <param name="robot_ns" value="$(arg robot_ns)" />
     <!-- <param name="real_transition" type="double" value="2.0" if="$(arg real_machine)"  />
     <param name="real_transition" type="double" value="0.0" unless="$(arg real_machine)"  /> -->
   </node>
