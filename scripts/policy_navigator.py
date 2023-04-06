@@ -59,6 +59,8 @@ class AgilePilotNode:
         # should change when changing position
         x = rospy.get_param("~shift_x")
         y = rospy.get_param("~shift_y")
+        self.fixed_flight: bool = rospy.get_param("~fixed_flight")
+        self.fixed_flight_pos = 30
         self.translation_position = np.array([x, y],dtype="float32")
         self.learned_world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
@@ -239,32 +241,43 @@ class AgilePilotNode:
         # print("norm_obs is ",norm_obs.shape)
         self.n_act, self.lstm_states = policy.predict(norm_obs, state = self.lstm_states, deterministic=True)
 
-        # print(self.n_act)
-        
-        # action_msg = Float64MultiArray()
-        # action_msg.data = (self.n_act[0, :]).tolist()
-        # # print(type(action_msg.data))
-        # # print(action_msg.data)
+        if self.fixed_flight_pos < obs[0, 2]:
+            self.fixed_flight = False
 
-        # self.act_pub.publish(action_msg)
-        # print("self.n_act",self.n_act)
-        # print("self.n_act.shape",self.n_act.shape)
-        action = (self.n_act * act_std + act_mean)[0, :]
+        if not self.fixed_flight:
+            # print(self.n_act)
+            # print("self.n_act.shape",self.n_act.shape)
+            action = (self.n_act * act_std + act_mean)[0, :]
+
+            # cmd freq is same as simulator? cf. in RL dt = 0.02
+            momentum = 0.0
+            self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.translation_position[0])+momentum*self.command.target_pos_x
+            self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.translation_position[1])+momentum*self.command.target_pos_y
+            self.command.target_pos_z = 1.0
+
+            self.command.target_vel_x = float(0)
+            self.command.target_vel_y = float(0)
+            self.command.target_vel_z = float(0.0)
+
+            self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
+
+        else:
+            self.n_act = np.array([[1.0, 0.0]])
+            action = (self.n_act * act_std + act_mean)[0, :]
+
+            momentum = 0.0
+            self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.translation_position[0])+momentum*self.command.target_pos_x
+            self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.translation_position[1])+momentum*self.command.target_pos_y
+            self.command.target_pos_z = 1.0
+
+            self.command.target_vel_x = float(5.0)
+            self.command.target_vel_y = float(0)
+            self.command.target_vel_z = float(0.0)
+
+            self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
 
         print("action: ", action)
-
-        # cmd freq is same as simulator? cf. in RL dt = 0.02
-        momentum = 0.0
-        self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.translation_position[0])+momentum*self.command.target_pos_x
-        self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.translation_position[1])+momentum*self.command.target_pos_y
-        self.command.target_pos_z = 1.0
-
-        self.command.target_vel_x = float(0)
-        self.command.target_vel_y = float(0)
-        self.command.target_vel_z = float(0.0)
-
-        # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
-        self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
+        print("state.vel[0]*self.vel_conversion: ", state.vel[0]*self.vel_conversion)
 
         return self.command
     
