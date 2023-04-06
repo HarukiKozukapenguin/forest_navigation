@@ -79,7 +79,7 @@ class AgilePilotNode:
         self.command.pos_z_nav_mode = 4
 
         self.lstm_states = None
-        self.body_size = rospy.get_param("~body_size")  #radius of quadrotor(0.25~0.5)
+        self.body_r = rospy.get_param("~body_r")  #radius of quadrotor(0.25~0.5)
         self.collision_distance = 0.10
         self.dist_backup = 0.10
         self.landing_dist_threshold = 0.05
@@ -215,7 +215,7 @@ class AgilePilotNode:
 
         obs = np.concatenate([
             self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
-            np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_size]), log_obs_vec
+            np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_r]), log_obs_vec
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
@@ -347,7 +347,7 @@ class AgilePilotNode:
             if length>self.max_detection_range:
                 #include inf (this means there are no data, but I limit this case is larger than range_max)
                 length=1
-            length-=self.body_size/self.max_detection_range
+            length-=self.body_r/self.max_detection_range
             obs_vec = np.append(obs_vec,length)
             # obs_vec = np.append(obs_vec,length) 
         # print("conversion_time: ", finish-start) <0.001s
@@ -358,11 +358,11 @@ class AgilePilotNode:
         self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
 
     def bad_collision(self, obs_vec):
-        return self.land_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_size + self.collision_distance
+        return self.land_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
     
     def landing_position_setting(self, obs_vec):
         # set the opposite direction of the nearest obstacle of the landing position
-        dist = self.body_size * (1-np.cos(self.tilt)) + self.dist_backup
+        dist = self.body_r * (1-np.cos(self.tilt)) + self.dist_backup
         min_index = np.argmin(obs_vec)
         direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num] # deg
         self.command.target_pos_x = self.state.pos[0]+self.translation_position[0] - dist*np.cos(np.deg2rad(self.yaw + direction))
@@ -385,7 +385,7 @@ class AgilePilotNode:
         self.land_pub.publish(Empty())
 
     def is_halt(self,obs_vec):
-        return self.max_halt_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_size + self.collision_distance
+        return self.max_halt_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
 
     def is_force_landing(self):
         diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,

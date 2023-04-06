@@ -5,7 +5,7 @@
   <arg name="hokuyo" default="True" />
   <arg name="shift_x" default="0.0"/>
   <arg name="shift_y" default="0.0"/>
-  <arg name="body_size" default="0.25"/>
+  <arg name="body_r" default="0.25"/>
   <!-- <arg name="real_machine" default="True" /> -->
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
 
@@ -14,7 +14,7 @@
     <param name="hokuyo" value="$(arg hokuyo)" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
-    <param name="body_size" type="double" value="$(arg body_size)" />
+    <param name="body_r" type="double" value="$(arg body_r)" />
     <param name="robot_ns" value="$(arg robot_ns)" />
     <!-- <param name="real_transition" type="double" value="2.0" if="$(arg real_machine)"  />
     <param name="real_transition" type="double" value="0.0" unless="$(arg real_machine)"  /> -->
