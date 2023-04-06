@@ -213,7 +213,7 @@ class AgilePilotNode:
             normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
 
         obs = np.concatenate([
-            self.n_act.reshape((2)), state.pos[0:2], state.vel[0]*self.vel_conversion, state.vel[1], rotation_matrix, state.omega,
+            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_size]), log_obs_vec
     ], axis=0).astype(np.float64)
 
