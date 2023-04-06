@@ -127,6 +127,7 @@ class AgilePilotNode:
 
     def obstacle_callback(self, obs_data):
         # obstacle conversion depending on the type of sensor
+        # range: 0.0~1.0 [m/self.max_detection_range]
         if self.get_from_hokuyo:
             obs_vec: np.array  = self.LaserScan_to_obs_vec(obs_data)
         else:
@@ -357,7 +358,7 @@ class AgilePilotNode:
         self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
 
     def bad_collision(self, obs_vec):
-        return self.land_tilt < self.tilt and np.min(obs_vec) < self.body_size + self.collision_distance
+        return self.land_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_size + self.collision_distance
     
     def landing_position_setting(self, obs_vec):
         # set the opposite direction of the nearest obstacle of the landing position
@@ -384,7 +385,7 @@ class AgilePilotNode:
         self.land_pub.publish(Empty())
 
     def is_halt(self,obs_vec):
-        return self.max_halt_tilt < self.tilt and np.min(obs_vec) < self.body_size + self.collision_distance
+        return self.max_halt_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_size + self.collision_distance
 
     def is_force_landing(self):
         diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,
