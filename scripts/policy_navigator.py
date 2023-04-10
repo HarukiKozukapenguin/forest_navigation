@@ -132,7 +132,7 @@ class AgilePilotNode:
         # obstacle conversion depending on the type of sensor
         # range: 0.0~1.0 [m/self.max_detection_range]
         if self.get_from_hokuyo:
-            obs_vec: np.array  = self.LaserScan_to_obs_vec(obs_data)
+            obs_vec, acc_obs_vec = self.LaserScan_to_obs_vec(obs_data)
         else:
             obs_vec: np.array = np.array(obs_data.boxel)
             acc_obs_vec: np.array  = np.array(obs_data.acc_boxel)
@@ -362,9 +362,19 @@ class AgilePilotNode:
                 length=1
             length-=self.body_r/self.max_detection_range
             obs_vec = np.append(obs_vec,length)
-            # obs_vec = np.append(obs_vec,length) 
-        # print("conversion_time: ", finish-start) <0.001s
-        return obs_vec
+        acc_obs_vec = np.empty(0)
+        for rad in acc_rad_list:
+            index = int(((rad-angle_min)/(angle_max-angle_min))*obstacle_length)
+            length = obstacles.ranges[index]
+            if length<=self.max_detection_range:
+                length/=self.max_detection_range
+            if length>self.max_detection_range:
+                #include inf (this means there are no data, but I limit this case is larger than range_max)
+                length=1
+            length-=self.body_r/self.max_detection_range
+            acc_obs_vec = np.append(acc_obs_vec,length)
+        return obs_vec, acc_obs_vec
+
     def full_range_rad_list_maker(self, theta_list):
         rad_list = []
         for theta in theta_list[::-1]:
