@@ -120,7 +120,7 @@ class AgilePilotNode:
         self.force_landing_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/force_landing', Empty, queue_size=1)
         self.halt_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/halt', Empty, queue_size=1)
 
-        self.n_act = np.zeros(2)
+        self.n_act = np.zeros(4)
 
         print("Initialization completed!")
 
@@ -219,7 +219,7 @@ class AgilePilotNode:
             normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
 
         obs = np.concatenate([
-            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
+            self.n_act.reshape((4)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_r]), log_obs_vec, acc_distance
     ], axis=0).astype(np.float64)
 
@@ -265,7 +265,7 @@ class AgilePilotNode:
             self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
 
         else:
-            self.n_act = np.array([[1.0, 0.0]])
+            self.n_act = np.array([[1.0, 0.0, 0.0, 0.0]])
             action = (self.n_act * act_std + act_mean)[0, :]
 
             momentum = 0.0
@@ -289,8 +289,8 @@ class AgilePilotNode:
         policy_dir = policy_path  + "/policy.pth"
         rms_dir = policy_path + "/rms.npz"
 
-        act_mean = np.array([0.0, 0.0])[np.newaxis, :] 
-        act_std = np.array([0.6, 0.6])[np.newaxis, :]
+        act_mean = np.array([0.0, 0.0, 0.0, 0.0])[np.newaxis, :]
+        act_std = np.array([0.6, 0.6, 1.0, 1.0])[np.newaxis, :]
 
         rms_data = np.load(rms_dir)
         obs_mean = np.mean(rms_data["mean"], axis=0)
