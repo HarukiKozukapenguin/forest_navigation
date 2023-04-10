@@ -166,7 +166,7 @@ class AgilePilotNode:
         # when there are no bad collision before
         if self.ppo_path is not None and self.rl_policy is None:
             self.rl_policy = self.load_rl_policy(self.ppo_path)
-        vel_msg = self.rl_example(state=self.state, obs_vec=obs_vec, rl_policy=self.rl_policy)
+        vel_msg = self.rl_example(state=self.state, obs_vec=obs_vec, acc_obs_vec=acc_obs_vec, rl_policy=self.rl_policy)
 
         if self.publish_commands:
             # debug to show whith direction quadrotor go in given position
@@ -175,7 +175,7 @@ class AgilePilotNode:
             # print("y_direction: ",vel_msg.target_pos_y-(self.state.pos[1]+self.translation_position[1]))
             self.linvel_pub.publish(vel_msg)
 
-    def rl_example(self, state, obs_vec, rl_policy=None):
+    def rl_example(self, state, obs_vec: np.array, acc_obs_vec: np.array, rl_policy=None):
         a = -1/self.beta
         b = 1-np.log(self.beta)
         log_obs_vec = np.where(obs_vec < self.beta, a*obs_vec+b, -np.log(obs_vec))
