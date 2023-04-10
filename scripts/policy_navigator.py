@@ -179,6 +179,7 @@ class AgilePilotNode:
         a = -1/self.beta
         b = 1-np.log(self.beta)
         log_obs_vec = np.where(obs_vec < self.beta, a*obs_vec+b, -np.log(obs_vec))
+        acc_distance: np.array = self.calc_dist_to_acc(acc_obs_vec)
         # obs_vec = np.array(obstacles.boxel)
         # Convert state to vector observation
         goal_vel = self.goal_lin_vel
@@ -413,6 +414,18 @@ class AgilePilotNode:
         diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,
             self.state.pos[1]+self.translation_position[1] - self.command.target_pos_y])
         return self.force_landing_dist_threshold < np.linalg.norm(diff)
+
+    def calc_dist_to_acc(self, obs_vec: np.array) -> np.array:
+        svel = np.inner(self.state.vel[0:2], self.state.vel[0:2])*self.vel_conversion**2
+        theta_list: list = [-theta for theta in self.acc_theta_list]
+        theta_list.reverse()
+        theta_list.extend(self.acc_theta_list.tolist())
+        acc_list = np.empty(0)
+        for dist, theta in zip(obs_vec, theta_list):
+            theta = np.deg2rad(theta)
+            acc = 2*np.sin(theta)*svel/(dist*self.max_detection_range*np.cos(theta)**2)
+            acc_list = np.append(acc_list, acc)
+        return acc_list
 
         
 
