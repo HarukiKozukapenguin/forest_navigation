@@ -257,8 +257,8 @@ class AgilePilotNode:
             self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.translation_position[1])+momentum*self.command.target_pos_y
             self.command.target_pos_z = 1.0
 
-            self.command.target_vel_x = float(0)
-            self.command.target_vel_y = float(0)
+            self.command.target_vel_x = action[2]
+            self.command.target_vel_y = action[3]
             self.command.target_vel_z = float(0.0)
 
             self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
