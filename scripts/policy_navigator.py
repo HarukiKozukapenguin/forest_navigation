@@ -90,7 +90,7 @@ class AgilePilotNode:
         self.beta = 0.002 # min distance for linearization
         learning_max_gain = 10.0
         exec_max_gain = 3.0
-        self.vel_conversion = 1/np.sqrt(exec_max_gain/learning_max_gain)
+        self.vel_conversion = np.sqrt(learning_max_gain/exec_max_gain)
         # Logic subscribers
         self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
                                           queue_size=1, tcp_nodelay=True)
