@@ -346,13 +346,10 @@ class AgilePilotNode:
         obstacle_length = len(obstacles.ranges)
         angle_min = obstacles.angle_min
         angle_max = obstacles.angle_max
-        rad_list = []
-        for theta in self.theta_list[::-1]:
-            deg = -theta
-            rad_list.append(deg*np.pi/180)
-        for theta in self.theta_list:
-            deg = theta
-            rad_list.append(deg*np.pi/180)
+
+        rad_list = self.full_range_rad_list_maker(self.theta_list)
+        acc_rad_list = self.full_range_rad_list_maker(self.acc_theta_list)
+
         obs_vec = np.empty(0)
         for rad in rad_list:
             index = int(((rad-angle_min)/(angle_max-angle_min))*obstacle_length)
@@ -367,6 +364,16 @@ class AgilePilotNode:
             # obs_vec = np.append(obs_vec,length) 
         # print("conversion_time: ", finish-start) <0.001s
         return obs_vec
+    def full_range_rad_list_maker(self, theta_list):
+        rad_list = []
+        for theta in theta_list[::-1]:
+            deg = -theta
+            rad_list.append(deg*np.pi/180)
+        for theta in theta_list:
+            deg = theta
+            rad_list.append(deg*np.pi/180)
+        return rad_list
+
     def calc_tilt(self):
         rotation_matrix = R.from_quat(self.state.att)
         self.yaw: np.float32 = rotation_matrix.as_euler('xyz', degrees=True)[2] # deg
