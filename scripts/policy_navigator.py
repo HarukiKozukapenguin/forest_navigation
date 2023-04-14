@@ -89,8 +89,8 @@ class AgilePilotNode:
         self.force_landing_dist_threshold = 0.40
         self.beta = 0.002 # min distance for linearization
         learning_max_gain = 10.0
-        exec_max_gain = 3.0
-        self.vel_conversion = np.sqrt(learning_max_gain/exec_max_gain)
+        self.exec_max_gain = 3.0
+        self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
         # Logic subscribers
         self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
                                           queue_size=1, tcp_nodelay=True)
@@ -120,7 +120,7 @@ class AgilePilotNode:
         self.force_landing_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/force_landing', Empty, queue_size=1)
         self.halt_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/halt', Empty, queue_size=1)
 
-        self.n_act = np.zeros(4)
+        self.n_act = np.zeros(2)
 
         print("Initialization completed!")
 
@@ -219,7 +219,7 @@ class AgilePilotNode:
             normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
 
         obs = np.concatenate([
-            self.n_act.reshape((4)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
+            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
             np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_r]), log_obs_vec, acc_distance
     ], axis=0).astype(np.float64)
 
@@ -254,28 +254,33 @@ class AgilePilotNode:
 
             # cmd freq is same as simulator? cf. in RL dt = 0.02
             momentum = 0.0
-            self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.translation_position[0])+momentum*self.command.target_pos_x
-            self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.translation_position[1])+momentum*self.command.target_pos_y
+            self.command.target_pos_x = (1-momentum)*(state.pos[0] + self.translation_position[0])+momentum*self.command.target_pos_x
+            self.command.target_pos_y = (1-momentum)*(state.pos[1] + self.translation_position[1])+momentum*self.command.target_pos_y
             self.command.target_pos_z = 1.0
 
-            self.command.target_vel_x = action[2]
-            self.command.target_vel_y = action[3]
+            self.command.target_vel_x = state.vel[0]
+            self.command.target_vel_y = state.vel[1]
             self.command.target_vel_z = float(0.0)
+
+            self.command.target_acc_x = action[0]
+            self.command.target_acc_y = action[1]
 
             self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
 
         else:
-            self.n_act = np.array([[1.0, 0.0, 0.0, 0.0]])
-            action = (self.n_act * act_std + act_mean)[0, :]
+            action = np.array([[self.exec_max_gain, 0.0]])
 
             momentum = 0.0
-            self.command.target_pos_x = (1-momentum)*(state.pos[0] + action[0]+self.translation_position[0])+momentum*self.command.target_pos_x
-            self.command.target_pos_y = (1-momentum)*(state.pos[1] + action[1]+self.translation_position[1])+momentum*self.command.target_pos_y
+            self.command.target_pos_x = (1-momentum)*(state.pos[0] + self.translation_position[0])+momentum*self.command.target_pos_x
+            self.command.target_pos_y = (1-momentum)*(state.pos[1] + self.translation_position[1])+momentum*self.command.target_pos_y
             self.command.target_pos_z = 1.0
 
             self.command.target_vel_x = float(5.0)
             self.command.target_vel_y = float(0)
             self.command.target_vel_z = float(0.0)
+
+            self.command.target_acc_x = action[0]
+            self.command.target_acc_y = action[1]
 
             self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
 
@@ -289,8 +294,8 @@ class AgilePilotNode:
         policy_dir = policy_path  + "/policy.pth"
         rms_dir = policy_path + "/rms.npz"
 
-        act_mean = np.array([0.0, 0.0, 0.0, 0.0])[np.newaxis, :]
-        act_std = np.array([0.6, 0.6, 1.0, 1.0])[np.newaxis, :]
+        act_mean = np.array([0.0, 0.0])[np.newaxis, :]
+        act_std = np.array([self.exec_max_gain, self.exec_max_gain])[np.newaxis, :]
 
         rms_data = np.load(rms_dir)
         obs_mean = np.mean(rms_data["mean"], axis=0)
@@ -308,6 +313,7 @@ class AgilePilotNode:
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
+        self.command.pos_xy_nav_mode = 3
         self.command.target_pos_x = self.state.pos[0]+self.translation_position[0]
         self.command.target_pos_y = self.state.pos[1]+self.translation_position[1]
         self.command.target_pos_z = self.state.pos[2]
@@ -323,7 +329,7 @@ class AgilePilotNode:
 
     def stop_callback(self, data):
         print("Stay current position!")
-        
+        self.command.pos_xy_nav_mode = 4
         self.command.target_pos_x = self.state.pos[0]+self.translation_position[0]
         self.command.target_pos_y = self.state.pos[1]+self.translation_position[1]
         self.command.target_pos_z = self.state.pos[2]
@@ -395,6 +401,7 @@ class AgilePilotNode:
     
     def landing_position_setting(self, obs_vec):
         # set the opposite direction of the nearest obstacle of the landing position
+        self.command.pos_xy_nav_mode = 4
         dist = self.body_r * (1-np.cos(self.tilt)) + self.dist_backup
         min_index = np.argmin(obs_vec)
         direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num] # deg
