@@ -64,7 +64,7 @@ class AgilePilotNode:
         self.translation_position = np.array([x, y],dtype="float32")
         self.learned_world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
-        self.theta_list = np.array([5,15,25,35,45,60,75,90, 105])
+        self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120, 134])
         self.acc_theta_list = np.array([1, 4, 7, 10])
         self.theta_num = len(self.theta_list)
         self.max_detection_range = 10 #max_detection_range when leraning
