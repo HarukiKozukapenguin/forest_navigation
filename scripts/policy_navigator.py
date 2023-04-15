@@ -91,6 +91,9 @@ class AgilePilotNode:
         learning_max_gain = 10.0
         self.exec_max_gain = 3.0
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
+        # self.vel_conversion = 1.0
+        self.time_constant = rospy.get_param("~time_constant")/self.vel_conversion #0.366
+        # self.time_constant = 0.3
         # Logic subscribers
         self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
                                           queue_size=1, tcp_nodelay=True)
@@ -220,7 +223,7 @@ class AgilePilotNode:
 
         obs = np.concatenate([
             self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
-            np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_r]), log_obs_vec, acc_distance
+            np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_r]), np.array([self.time_constant]), log_obs_vec, acc_distance
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
