@@ -55,7 +55,7 @@ class AgilePilotNode:
         self.stop_navigation = False
         self.state = None
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
-        self.world_box = np.array([-0.3, 25 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
+        self.world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # should change when changing position
         x = rospy.get_param("~shift_x")
         y = rospy.get_param("~shift_y")
