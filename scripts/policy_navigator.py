@@ -90,6 +90,7 @@ class AgilePilotNode:
         self.beta = 0.002 # min distance for linearization
         learning_max_gain = 10.0
         self.exec_max_gain = 3.0
+        self.wall_pos = 1.75
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
         # self.vel_conversion = 1.0
         self.time_constant = rospy.get_param("~time_constant")/self.vel_conversion #0.366
@@ -220,10 +221,11 @@ class AgilePilotNode:
         normalized_p = np.zeros(3)
         for i in range(3):
             normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
+        wall_vec = np.array([(self.wall_pos - self.body_r) - state.pos[1], (self.wall_pos - self.body_r) + state.pos[1]])
 
         obs = np.concatenate([
             self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
-            np.array([world_box[2] - state.pos[1], world_box[3] - state.pos[1]]), np.array([self.body_r]), np.array([self.time_constant]), log_obs_vec, acc_distance
+            np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)), np.array([self.body_r]), np.array([self.time_constant]), log_obs_vec, acc_distance
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
