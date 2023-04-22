@@ -373,7 +373,8 @@ class AgilePilotNode:
             obs_vec = np.append(obs_vec,length)
         acc_obs_vec = np.empty(0)
         for rad in acc_rad_list:
-            index = int(((rad-angle_min)/(angle_max-angle_min))*obstacle_length)
+            vel_direction = np.arctan2(self.state.vel[1], self.state.vel[0])
+            index = int(((rad+vel_direction-angle_min)/(angle_max-angle_min))*obstacle_length)
             length = obstacles.ranges[index]
             if length<=self.max_detection_range:
                 length/=self.max_detection_range
