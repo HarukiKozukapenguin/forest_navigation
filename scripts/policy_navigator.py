@@ -131,6 +131,7 @@ class AgilePilotNode:
 
     def state_callback(self, state_data):
         self.state = AgileQuadState(state_data,self.translation_position)
+        self.command.header.stamp = state_data.header.stamp
         att_aray = self.state.att
         rotation_matrix = R.from_quat(att_aray)
         self.poll_y = rotation_matrix.as_matrix()[1,:]
