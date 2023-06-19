@@ -8,6 +8,7 @@
   <arg name="body_r" default="0.25"/>
   <arg name="fixed_flight" default="False"/>
   <arg name="time_constant" default="0.510"/>
+  <arg name="delay" default="False" />
   <!-- <arg name="real_machine" default="True" /> -->
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
 
@@ -20,6 +21,7 @@
     <param name="fixed_flight" type="bool" value="$(arg fixed_flight)" />
     <param name="robot_ns" value="$(arg robot_ns)" />
     <param name="time_constant" value="$(arg time_constant)" />
+    <param name="delay" value="$(arg delay)" />
     <!-- <param name="real_transition" type="double" value="2.0" if="$(arg real_machine)"  />
     <param name="real_transition" type="double" value="0.0" unless="$(arg real_machine)"  /> -->
   </node>

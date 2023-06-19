@@ -42,6 +42,36 @@ class AgileQuadState:
                                quad_state.twist.twist.angular.y,
                                quad_state.twist.twist.angular.z], dtype=np.float32)
 
+class Buffer:
+    def __init__(self, min, width, dim):
+        self.min = min
+        self.width = width
+        self.sim_dt = 0.025 # 40Hz
+        self.max_size : int = int(np.ceil((self.min + self.width)/self.sim_dt))
+        self.dim = dim
+        self.buffer = [np.zeros(self.dim)] * int(self.max_size)
+        self.past_delay = 0
+
+    def reset(self):
+        self.buffer = [np.zeros(self.dim)] * int(self.max_size)
+        self.past_delay = 0
+
+    def effect_delay(self, new_data: np.array) -> np.array:
+        self.buffer.insert(0, new_data)
+        time_delay = np.random.uniform(0, self.width) + self.min
+        if self.past_delay - self.sim_dt / 4 < time_delay - self.sim_dt:
+            time_delay = self.past_delay - self.sim_dt / 4 + self.sim_dt
+        time_step = float(time_delay / self.sim_dt)
+        time_idx = int(np.floor(time_step))
+        time_frac = time_step - time_idx
+
+        out = self.buffer[time_idx] * (1 - time_frac) + self.buffer[time_idx + 1] * time_frac
+
+        if len(self.buffer) > self.max_size:
+            self.buffer.pop()
+        self.past_delay = time_delay
+
+        return out
 
 class AgilePilotNode:
     def __init__(self):
@@ -74,6 +104,11 @@ class AgilePilotNode:
         self.land_tilt = np.deg2rad(40)
         self.rl_policy = None
         # should change depending on world flame's origin
+
+        self.is_delay = rospy.get_param("~delay")
+        if self.is_delay:
+            self.obs_buffer = Buffer(0.025, 0.025, 52)
+            self.act_buffer = Buffer(0.020, 0.015, 2)
 
         quad_name = rospy.get_param("~robot_ns")
 
@@ -253,6 +288,8 @@ class AgilePilotNode:
             # writer = csv.writer(f)
             # writer.writerow(obs_list)
         # f.close()
+        if self.is_delay:
+            obs = self.obs_buffer.effect_delay(obs)
 
         obs = obs.reshape(-1, obs.shape[0])
         norm_obs = self.normalize_obs(obs, obs_mean, obs_var)
@@ -261,6 +298,9 @@ class AgilePilotNode:
         # print("type(norm_obs) is ",type(norm_obs))
         # print("norm_obs is ",norm_obs.shape)
         self.n_act, self.lstm_states = policy.predict(norm_obs, state = self.lstm_states, deterministic=True)
+
+        if self.is_delay:
+            self.n_act = self.act_buffer.effect_delay(self.n_act)
 
         if self.fixed_flight_pos < obs[0, 2]:
             self.fixed_flight = False
