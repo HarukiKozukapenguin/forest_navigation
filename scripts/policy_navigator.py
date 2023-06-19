@@ -123,6 +123,7 @@ class AgilePilotNode:
         self.land_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/land', Empty, queue_size=1)
         self.force_landing_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/force_landing', Empty, queue_size=1)
         self.halt_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/halt', Empty, queue_size=1)
+        self.hokuyo_time_pub = rospy.Publisher("/" + quad_name + "/debug/hokuyo_time", Time, queue_size=1)
 
         self.n_act = np.zeros(2)
 
@@ -141,7 +142,9 @@ class AgilePilotNode:
         # obstacle conversion depending on the type of sensor
         # range: 0.0~1.0 [m/self.max_detection_range]
         if self.get_from_hokuyo:
+            hokuyo_time_msg = Time()
             obs_vec, acc_obs_vec = self.LaserScan_to_obs_vec(obs_data)
+            hokuyo_time_msg.data = obs_data.header.stamp
         else:
             obs_vec: np.array = np.array(obs_data.boxel)
             obs_vec -= self.body_r/self.max_detection_range
@@ -185,6 +188,8 @@ class AgilePilotNode:
             # print("x_direction: ",vel_msg.target_pos_x-(self.state.pos[0]+self.translation_position[0]))
             # print("y_direction: ",vel_msg.target_pos_y-(self.state.pos[1]+self.translation_position[1]))
             self.linvel_pub.publish(vel_msg)
+            if self.get_from_hokuyo:
+                self.hokuyo_time_pub.publish(hokuyo_time_msg)
 
     def rl_example(self, state, obs_vec: np.array, acc_obs_vec: np.array, rl_policy=None):
         a = -1/self.beta
