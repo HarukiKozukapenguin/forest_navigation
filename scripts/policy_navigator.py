@@ -280,7 +280,7 @@ class AgilePilotNode:
             self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
 
         else:
-            action = np.array([[self.exec_max_gain, 0.0]])
+            action = np.array([self.exec_max_gain, 0.0])
 
             momentum = 0.0
             self.command.target_pos_x = (1-momentum)*(state.pos[0] + self.translation_position[0])+momentum*self.command.target_pos_x
