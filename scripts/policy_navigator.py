@@ -144,7 +144,9 @@ class AgilePilotNode:
             obs_vec, acc_obs_vec = self.LaserScan_to_obs_vec(obs_data)
         else:
             obs_vec: np.array = np.array(obs_data.boxel)
+            obs_vec -= self.body_r/self.max_detection_range
             acc_obs_vec: np.array  = np.array(obs_data.acc_boxel)
+            acc_obs_vec -= self.body_r/self.max_detection_range
         if self.state is None:
             return
         # self.rl_policy = None
