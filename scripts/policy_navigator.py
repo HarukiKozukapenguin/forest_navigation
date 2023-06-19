@@ -368,6 +368,7 @@ class AgilePilotNode:
         return (obs - obs_mean) / np.sqrt(obs_var + 1e-8)
 
     def LaserScan_to_obs_vec(self, obstacles: LaserScan):
+        vel_calc_standard = 0.1 if self.publish_commands else 0.3
         obstacle_length = len(obstacles.ranges)
         angle_min = obstacles.angle_min
         angle_max = obstacles.angle_max
@@ -393,7 +394,7 @@ class AgilePilotNode:
             obs_vec = np.append(obs_vec,length)
         acc_obs_vec = np.empty(0)
         for rad in acc_rad_list:
-            if np.linalg.norm(np.array([self.state.vel[0], self.state.vel[1]]))<0.1:
+            if np.linalg.norm(np.array([self.state.vel[0], self.state.vel[1]]))<vel_calc_standard:
                 vel_direction = 0
             else:
                 vel_direction = np.arctan2(self.state.vel[1], self.state.vel[0])
