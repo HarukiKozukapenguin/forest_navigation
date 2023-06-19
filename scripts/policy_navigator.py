@@ -376,12 +376,12 @@ class AgilePilotNode:
             if obs_length>self.max_detection_range:
                 #include inf (this means there are no data, but I limit this case is larger than range_max)
                 obs_length=1
-            obs_length-=self.body_r/self.max_detection_range
             Cell = np.array([np.cos(rad), np.sin(rad), 0])
             dist_from_wall_p = self.calc_dist_from_wall(+1, Cell, self.poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall = min([dist_from_wall_p, dist_from_wall_n])
             length = min(obs_length, dist_from_wall)
+            length -= self.body_r/self.max_detection_range
             obs_vec = np.append(obs_vec,length)
         acc_obs_vec = np.empty(0)
         for rad in acc_rad_list:
@@ -396,12 +396,12 @@ class AgilePilotNode:
             if obs_length>self.max_detection_range:
                 #include inf (this means there are no data, but I limit this case is larger than range_max)
                 obs_length=1
-            obs_length-=self.body_r/self.max_detection_range
             Cell = np.array([np.cos(rad), np.sin(rad), 0])
             dist_from_wall_p = self.calc_dist_from_wall(+1, Cell, self.poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall = min(dist_from_wall_p, dist_from_wall_n)
             length = min(obs_length, dist_from_wall)
+            length -= self.body_r/self.max_detection_range
             acc_obs_vec = np.append(acc_obs_vec,length)
         return obs_vec, acc_obs_vec
 
