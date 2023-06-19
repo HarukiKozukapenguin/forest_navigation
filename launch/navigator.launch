@@ -7,7 +7,7 @@
   <arg name="shift_y" default="0.0"/>
   <arg name="body_r" default="0.25"/>
   <arg name="fixed_flight" default="False"/>
-  <arg name="time_constant" default="0.366"/>
+  <arg name="time_constant" default="0.510"/>
   <!-- <arg name="real_machine" default="True" /> -->
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
 
