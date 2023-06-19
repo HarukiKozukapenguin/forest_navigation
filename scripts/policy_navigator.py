@@ -10,6 +10,7 @@ from aerial_robot_msgs.msg import FlightNav
 from sensor_msgs.msg import LaserScan
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Time
 # from sensor_msgs.msg import Image
 
 import torch
