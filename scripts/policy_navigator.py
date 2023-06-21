@@ -93,7 +93,6 @@ class AgilePilotNode:
         self.fixed_flight: bool = rospy.get_param("~fixed_flight")
         self.fixed_flight_pos = 30
         self.translation_position = np.array([x, y],dtype="float32")
-        self.learned_world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
         self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120, 134])
         self.acc_theta_list = np.array([1, 4, 7, 10])
@@ -235,7 +234,6 @@ class AgilePilotNode:
         # obs_vec = np.array(obstacles.boxel)
         # Convert state to vector observation
         goal_vel = self.goal_lin_vel
-        world_box = self.learned_world_box
         att_aray = state.att
         rotation_matrix = R.from_quat(att_aray)
         euler = rotation_matrix.as_euler('xyz')
@@ -267,9 +265,7 @@ class AgilePilotNode:
             return self.command
 
         policy, obs_mean, obs_var, act_mean, act_std = rl_policy
-        normalized_p = np.zeros(3)
-        for i in range(3):
-            normalized_p[i] = (state.pos[i]-self.learned_world_box[2*i])/(self.learned_world_box[2*i+1]-self.learned_world_box[2*i])
+
         wall_vec = np.array([(self.wall_pos - self.body_r) - state.pos[1], (self.wall_pos - self.body_r) + state.pos[1]])
 
         obs = np.concatenate([
