@@ -256,8 +256,8 @@ class AgilePilotNode:
             if not inside_range:
                 print("Out of range!")
                 self.force_landing_pub.publish(Empty())
-            self.command.target_pos_x = self.world_box[1]+self.translation_position[0]-0.8
             self.command.pos_xy_nav_mode = 4
+            self.command.target_pos_x = self.world_box[1]+self.translation_position[0]-1.0
             self.command.target_pos_y = 0
             self.command.target_pos_z = state.pos[2]
 
