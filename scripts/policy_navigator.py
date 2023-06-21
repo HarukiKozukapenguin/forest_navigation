@@ -85,6 +85,7 @@ class AgilePilotNode:
         self.publish_commands = False
         self.stop_navigation = False
         self.state = None
+        self.poll_y = np.array([0,1,0],dtype="float32")
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.world_box = np.array([-0.3, 70 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # should change when changing position
