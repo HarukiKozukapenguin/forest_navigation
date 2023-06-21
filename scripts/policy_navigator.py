@@ -108,8 +108,8 @@ class AgilePilotNode:
 
         self.is_delay = rospy.get_param("~delay")
         if self.is_delay:
-            self.obs_buffer = Buffer(0.025, 0.025, 52)
-            self.act_buffer = Buffer(0.020, 0.015, 2)
+            self.act_buffer = Buffer(0.020, 0.040, 2)
+            self.obs_buffer = Buffer(0.020, 0.050, 52)
 
         quad_name = rospy.get_param("~robot_ns")
 
