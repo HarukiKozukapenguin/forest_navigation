@@ -162,6 +162,8 @@ class AgilePilotNode:
         self.halt_pub = rospy.Publisher("/" + quad_name + "/teleop_command" + '/halt', Empty, queue_size=1)
         self.hokuyo_time_pub = rospy.Publisher("/" + quad_name + "/debug/hokuyo_time", Time, queue_size=1)
 
+        self.obs_obstacle_pub = rospy.Publisher("/" + quad_name + "/debug/obs_polar_pixel", ObstacleArray, queue_size=1)
+
         self.n_act = np.zeros(2)
 
         print("Initialization completed!")
@@ -219,6 +221,12 @@ class AgilePilotNode:
         # when there are no bad collision before
         if self.ppo_path is not None and self.rl_policy is None:
             self.rl_policy = self.load_rl_policy(self.ppo_path)
+
+        obs_polar_pixel = ObstacleArray()
+        obs_polar_pixel.boxel = obs_vec
+        obs_polar_pixel.acc_boxel = acc_obs_vec
+        self.obs_obstacle_pub.publish(obs_polar_pixel)
+
         vel_msg = self.rl_example(state=self.state, obs_vec=obs_vec, acc_obs_vec=acc_obs_vec, rl_policy=self.rl_policy)
 
         if self.publish_commands:
