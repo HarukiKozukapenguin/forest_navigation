@@ -103,6 +103,7 @@ class AgilePilotNode:
         self.max_halt_tilt = np.deg2rad(60)
         self.land_tilt = np.deg2rad(40)
         self.rl_policy = None
+        self.goal = False
         # should change depending on world flame's origin
 
         self.is_delay = rospy.get_param("~delay")
@@ -177,6 +178,8 @@ class AgilePilotNode:
     def obstacle_callback(self, obs_data):
         # obstacle conversion depending on the type of sensor
         # range: 0.0~1.0 [m/self.max_detection_range]
+        if self.goal:
+            return
         if self.get_from_hokuyo:
             hokuyo_time_msg = Time()
             obs_vec, acc_obs_vec = self.LaserScan_to_obs_vec(obs_data)
@@ -242,12 +245,13 @@ class AgilePilotNode:
 
         # print("state.pos[0]: ", state.pos[0])
         # print("self.world_box[1]-1.2: ", self.world_box[1]-1.2)
-        goal = self.world_box[1]-1.2<state.pos[0]
+        if not self.goal:
+            self.goal = self.world_box[1]-1.2<state.pos[0]
         inside_range = True
         for i in range (3):
             inside_range &= self.world_box[i*2]<state.pos[i]<self.world_box[i*2+1]
-        if goal or not inside_range:
-            if goal:
+        if self.goal or not inside_range:
+            if self.goal:
                 print("Goal!")    
             if not inside_range:
                 print("Out of range!")
