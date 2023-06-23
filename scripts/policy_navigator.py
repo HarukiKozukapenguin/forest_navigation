@@ -99,7 +99,7 @@ class AgilePilotNode:
         x = rospy.get_param("~shift_x")
         y = rospy.get_param("~shift_y")
         self.fixed_flight: bool = rospy.get_param("~fixed_flight")
-        self.fixed_flight_pos = 30
+        self.fixed_flight_pos = 4.0
         self.translation_position = np.array([x, y],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
         self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120, 134])
