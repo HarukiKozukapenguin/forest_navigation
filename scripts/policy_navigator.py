@@ -86,6 +86,7 @@ class AgilePilotNode:
         self.stop_navigation = False
         self.state = None
         self.poll_y = np.array([0,1,0],dtype="float32")
+        self.quad_pos = np.array([0,0,0],dtype="float32")
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.real_area = rospy.get_param("~real_area")
         if self.real_area:
