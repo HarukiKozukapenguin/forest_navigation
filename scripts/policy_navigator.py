@@ -22,6 +22,7 @@ from scipy.spatial.transform import Rotation as R
 from stable_baselines3.common.utils import get_device
 from sb3_contrib.ppo_recurrent import MlpLstmPolicy
 # import csv
+import sys
 
 
 class AgileQuadState:
@@ -87,6 +88,7 @@ class AgilePilotNode:
         self.state = None
         self.poll_y = np.array([0,1,0],dtype="float32")
         self.quad_pos = np.array([0,0,0],dtype="float32")
+        self.yaw_rad = 0
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.real_area = rospy.get_param("~real_area")
         if self.real_area:
@@ -181,6 +183,7 @@ class AgilePilotNode:
         att_aray = self.state.att
         rotation_matrix = R.from_quat(att_aray)
         self.poll_y = rotation_matrix.as_matrix()[1,:]
+        self.yaw_rad: np.float32 = rotation_matrix.as_euler('xyz', degrees=False)[2] # rad
         self.quad_pos = self.state.pos
 
     def obstacle_callback(self, obs_data):
@@ -436,7 +439,11 @@ class AgilePilotNode:
 
         obs_vec = np.empty(0)
         for rad in rad_list:
-            index = int(((rad-angle_min)/(angle_max-angle_min))*obstacle_length)
+            depth_rad = rad - self.yaw_rad
+            index = int(((depth_rad-angle_min)/(angle_max-angle_min))*obstacle_length)
+            if index<0 or index>=obstacle_length:
+                print("Error: depth index in out of range: ",index, file=sys.stderr)
+                sys.exit(1)
             obs_length = obstacles.ranges[index]
             if obs_length<=self.max_detection_range:
                 obs_length/=self.max_detection_range
@@ -456,7 +463,11 @@ class AgilePilotNode:
                 vel_direction = 0
             else:
                 vel_direction = np.arctan2(self.state.vel[1], self.state.vel[0])
-            index = int(((rad+vel_direction-angle_min)/(angle_max-angle_min))*obstacle_length)
+            depth_rad = rad - self.yaw_rad
+            index = int(((depth_rad+vel_direction-angle_min)/(angle_max-angle_min))*obstacle_length)
+            if index<0 or index>=obstacle_length:
+                print("Error: depth index in out of range: ",index, file=sys.stderr)
+                sys.exit(1)
             obs_length = obstacles.ranges[index]
             if obs_length<=self.max_detection_range:
                 obs_length/=self.max_detection_range
@@ -484,7 +495,7 @@ class AgilePilotNode:
 
     def calc_tilt(self):
         rotation_matrix = R.from_quat(self.state.att)
-        self.yaw: np.float32 = rotation_matrix.as_euler('xyz', degrees=True)[2] # deg
+        self.yaw_deg: np.float32 = rotation_matrix.as_euler('xyz', degrees=True)[2] # deg
         self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
 
     def bad_collision(self, obs_vec):
@@ -496,8 +507,8 @@ class AgilePilotNode:
         dist = self.body_r * (1-np.cos(self.tilt)) + self.dist_backup
         min_index = np.argmin(obs_vec)
         direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num] # deg
-        self.command.target_pos_x = self.state.pos[0]+self.translation_position[0] - dist*np.cos(np.deg2rad(self.yaw + direction))
-        self.command.target_pos_y = self.state.pos[1]+self.translation_position[1] - dist*np.sin(np.deg2rad(self.yaw + direction)) #move to the opposite direction of the nearest obstacle
+        self.command.target_pos_x = self.state.pos[0]+self.translation_position[0] - dist*np.cos(np.deg2rad(self.yaw_deg + direction))
+        self.command.target_pos_y = self.state.pos[1]+self.translation_position[1] - dist*np.sin(np.deg2rad(self.yaw_deg + direction)) #move to the opposite direction of the nearest obstacle
         self.command.target_pos_z = 1.0
         self.command.target_vel_x = float(0)
         self.command.target_vel_y = float(0)
