@@ -86,6 +86,7 @@ class AgilePilotNode:
         self.publish_commands = False
         self.stop_navigation = False
         self.state = None
+        # init setting param setting to avoid error
         self.poll_y = np.array([0,1,0],dtype="float32")
         self.quad_pos = np.array([0,0,0],dtype="float32")
         self.yaw_rad = 0
@@ -138,7 +139,8 @@ class AgilePilotNode:
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
         # self.vel_conversion = 1.0
         self.time_constant = rospy.get_param("~time_constant")/self.vel_conversion #0.366
-        # self.time_constant = 0.3
+        # self.time_constant = rospy.get_param("~time_constant") #0.366
+        # self.time_constant = 0.366
         # Logic subscribers
         self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
                                           queue_size=1, tcp_nodelay=True)
@@ -318,8 +320,11 @@ class AgilePilotNode:
 
         # print("type(norm_obs) is ",type(norm_obs))
         # print("norm_obs is ",norm_obs.shape)
+        # now = rospy.Time.now()
         self.n_act, self.lstm_states = policy.predict(norm_obs, state = self.lstm_states, deterministic=True)
 
+        # diff = rospy.Time.now()-now
+        # print("policy_execution_time: ", diff.secs, ", ", diff.nsecs)
         if self.is_delay:
             self.n_act = self.act_buffer.effect_delay(self.n_act)
 
