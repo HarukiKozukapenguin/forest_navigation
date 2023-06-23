@@ -168,7 +168,8 @@ class AgilePilotNode:
         self.hokuyo_time_pub = rospy.Publisher("/" + quad_name + "/debug/hokuyo_time", Time, queue_size=1)
 
         self.obs_obstacle_pub = rospy.Publisher("/" + quad_name + "/debug/obs_polar_pixel", ObstacleArray, queue_size=1)
-
+        self.debug_linvel_pub = rospy.Publisher("/" + quad_name + "/debug/uav/nav", FlightNav,
+                                          queue_size=1)
         self.n_act = np.zeros(2)
 
         print("Initialization completed!")
@@ -233,6 +234,8 @@ class AgilePilotNode:
         self.obs_obstacle_pub.publish(obs_polar_pixel)
 
         vel_msg = self.rl_example(state=self.state, obs_vec=obs_vec, acc_obs_vec=acc_obs_vec, rl_policy=self.rl_policy)
+        # publisher for debugging in any situation
+        self.debug_linvel_pub.publish(vel_msg)
 
         if self.publish_commands:
             # debug to show whith direction quadrotor go in given position
