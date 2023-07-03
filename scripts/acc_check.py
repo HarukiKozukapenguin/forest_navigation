@@ -8,6 +8,8 @@ from std_msgs.msg import Empty
 from nav_msgs.msg import Odometry
 from aerial_robot_msgs.msg import FlightNav
 from scipy.spatial.transform import Rotation as R 
+import smach
+import smach_ros
 
 class AgileQuadState:
     def __init__(self, quad_state,transition):
@@ -24,7 +26,11 @@ class AgileQuadState:
         self.omega = np.array([quad_state.twist.twist.angular.x,
                                quad_state.twist.twist.angular.y,
                                quad_state.twist.twist.angular.z], dtype=np.float32)
-        
+
+class GeoCondition:
+    pos_acc = 0
+    buffer_place = 1
+    neg_acc = 2
 
 class AccCheck:
     def __init__(self) -> None:
@@ -44,28 +50,32 @@ class AccCheck:
         self.initialize_variable()
     
     def set_variable(self):
-        self.exec_max_gain = 3.0
-        self.check_distance = 1.5
-        self.stop_distance = .5
+        self.exec_max_gain = 1.5
+        self.check_distance = 1.4
+        self.stop_distance = 0.5
+        self.x_range = 4.0
+        self.vel_threshold = 1.2
     
     def initialize_variable(self):
         self.publish_commands = False
+        self.pos_nav_mode = False
         self.command = FlightNav()
         self.command.target = 1
         self.command.pos_xy_nav_mode = 4
         self.command.pos_z_nav_mode = 4
+        self.geo_condition = GeoCondition.pos_acc
+        self.change_to_pos = True
+        self.state = None
 
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
         self.command.pos_xy_nav_mode = 3
-        self.command.target_pos_x = self.state.pos[0]+self.translation_position[0]
-        self.command.target_pos_y = self.state.pos[1]+self.translation_position[1]
+        self.command.target_pos_y = 0.0 + self.translation_position[1]
         self.command.target_pos_z = self.state.pos[2]
-
-        self.command.target_vel_x = 0
-        self.command.target_vel_y = 0
-        self.command.target_vel_z = 0
+        self.command.target_vel_y = 0.0
+        self.command.target_vel_z = 0.0
+        self.command.target_acc_y = 0.0
 
         # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
         rotation_matrix = R.from_quat(self.state.att)
@@ -75,20 +85,118 @@ class AccCheck:
     def state_callback(self, state_data):
         self.command.header.stamp = state_data.header.stamp
         self.state = AgileQuadState(state_data, self.translation_position)
-        if self.state.pos[0]<self.check_distance:
-            action = np.array([self.exec_max_gain, 0.0])
-            self.command.target_acc_x = action[0]
-            self.command.target_acc_y = action[1]
+        if self.state.pos[0] < self.check_distance:
+            self.geo_condition = GeoCondition.pos_acc
+        elif self.state.pos[0] < self.x_range - self.check_distance:
+            self.geo_condition = GeoCondition.buffer_place
         else:
-            self.command.pos_xy_nav_mode = 4
-            self.command.target_pos_x = self.check_distance+self.stop_distance + self.translation_position[0]
-            self.command.target_pos_y = 0+self.translation_position[1]
-            self.command.target_vel_x = 0
-            self.command.target_vel_y = 0
+            self.geo_condition = GeoCondition.neg_acc
+
         if self.publish_commands:
             self.linvel_pub.publish(self.command)
+
+class PosAcc(smach.State):
+    def __init__(self, acc_check_node):
+        smach.State.__init__(self, outcomes=['neg_acc_prep','exit'])
+        self.counter = 0
+        self.inverval_num = rospy.get_param("~inverval_num")
+        self.acc_check_node = acc_check_node
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state PosAcc')
+        while self.acc_check_node.state is None:
+            rospy.sleep(0.01)
+        if self.counter < self.inverval_num:
+            self.act_set()
+            self.counter += 1
+            while acc_check_node.geo_condition == GeoCondition.pos_acc:
+                rospy.sleep(0.01)
+            return 'neg_acc_prep'
+        else:
+            self.finish()
+            while True:
+                rospy.sleep(1)
+            return 'exit'
+
+    def act_set(self):
+        self.acc_check_node.command.target_pos_x = self.acc_check_node.state.pos[0]+self.acc_check_node.translation_position[0]
+        self.acc_check_node.command.target_vel_x = self.acc_check_node.state.vel[0]
+        action = np.array([self.acc_check_node.exec_max_gain, 0.0])
+        self.acc_check_node.command.target_acc_x = action[0]
     
+    def finish(self):
+        self.acc_check_node.command.pos_xy_nav_mode = 2 #position mode
+        self.acc_check_node.command.target_pos_x = self.acc_check_node.check_distance + self.acc_check_node.stop_distance + self.acc_check_node.translation_position[0]
+        self.acc_check_node.command.target_vel_x = 0.0
+
+class PosAccPrep(PosAcc):
+    def __init__(self, acc_check_node):
+        smach.State.__init__(self, outcomes=['pos_acc', 'neg_acc_prep'])
+        self.acc_check_node = acc_check_node
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state PosAccPrep')
+        while self.acc_check_node.state is None:
+            rospy.sleep(0.01)
+        self.act_set()
+        while acc_check_node.geo_condition == GeoCondition.buffer_place and self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold:
+            rospy.sleep(0.01)
+        if acc_check_node.geo_condition == GeoCondition.pos_acc:
+            return 'pos_acc'
+        else:
+            return 'neg_acc_prep'
+
+class NegAcc(smach.State):
+    def __init__(self, acc_check_node):
+        smach.State.__init__(self, outcomes=['pos_acc_prep'])
+        self.acc_check_node = acc_check_node
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state NegAcc')
+        while self.acc_check_node.state is None:
+            rospy.sleep(0.01)
+        self.act_set()
+        while acc_check_node.geo_condition == GeoCondition.neg_acc:
+            rospy.sleep(0.01)
+        return 'pos_acc_prep'
+
+    def act_set(self):
+        self.acc_check_node.command.target_pos_x = self.acc_check_node.state.pos[0] + self.acc_check_node.translation_position[0]
+        self.acc_check_node.command.target_vel_x = self.acc_check_node.state.vel[0]
+        action = np.array([-self.acc_check_node.exec_max_gain, 0.0])
+        self.acc_check_node.command.target_acc_x = action[0]
+
+class NegAccPrep(NegAcc):
+    def __init__(self, acc_check_node):
+        smach.State.__init__(self, outcomes=['neg_acc', 'pos_acc_prep'])
+        self.acc_check_node = acc_check_node
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state NegAccPrep')
+        while self.acc_check_node.state is None:
+            rospy.sleep(0.01)
+        self.act_set()
+        while acc_check_node.geo_condition == GeoCondition.buffer_place and -self.acc_check_node.vel_threshold < self.acc_check_node.state.vel[0]:
+            rospy.sleep(0.01)
+        if acc_check_node.geo_condition == GeoCondition.neg_acc:
+            return 'neg_acc'
+        else:
+            return 'pos_acc_prep'
 
 if __name__ == '__main__':
     acc_check_node = AccCheck()
-    rospy.spin()
+    sm = smach.StateMachine(outcomes=['exit'])
+    with sm:
+        smach.StateMachine.add('POSACC', PosAcc(acc_check_node),
+                               transitions={'neg_acc_prep':'NEGACCPREP'})
+        smach.StateMachine.add('NEGACCPREP', NegAccPrep(acc_check_node),
+                               transitions={'neg_acc':'NEGACC', 'pos_acc_prep':'POSACCPREP'})
+        smach.StateMachine.add('NEGACC', NegAcc(acc_check_node),
+                               transitions={'pos_acc_prep':'POSACCPREP'})
+        smach.StateMachine.add('POSACCPREP', PosAccPrep(acc_check_node),
+                               transitions={'pos_acc':'POSACC', 'neg_acc_prep':'NEGACCPREP'})
+
+    sis = smach_ros.IntrospectionServer('acc_check_server', sm, '/ACC_CHECK')
+    sis.start()
+
+    outcome = sm.execute()
