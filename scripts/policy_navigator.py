@@ -87,7 +87,7 @@ class AgilePilotNode:
         self.stop_navigation = False
         self.state = None
         # init setting param setting to avoid error
-        self.poll_y = np.array([0,1,0],dtype="float32")
+        self.no_yaw_poll_y = np.array([0,1,0],dtype="float32")
         self.quad_pos = np.array([0,0,0],dtype="float32")
         self.yaw_rad = 0
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
@@ -183,9 +183,13 @@ class AgilePilotNode:
         self.state = AgileQuadState(state_data,self.translation_position)
         self.command.header.stamp = state_data.header.stamp
         att_aray = self.state.att
-        rotation_matrix = R.from_quat(att_aray)
-        self.poll_y = rotation_matrix.as_matrix()[1,:]
-        self.yaw_rad: np.float32 = rotation_matrix.as_euler('xyz', degrees=False)[2] # rad
+        rotation = R.from_quat(att_aray)
+
+        euler: np.float32 = rotation.as_euler('xyz', degrees=False) # rad
+        self.yaw_rad = euler[2]
+        no_yaw_rotation = R.from_euler('xyz', [euler[0], euler[1], 0.0], degrees=False)
+
+        self.no_yaw_poll_y = no_yaw_rotation.as_matrix()[1,:]
         self.quad_pos = self.state.pos
 
     def obstacle_callback(self, obs_data):
@@ -456,8 +460,8 @@ class AgilePilotNode:
                 #include inf (this means there are no data, but I limit this case is larger than range_max)
                 obs_length=1
             Cell = np.array([np.cos(rad), np.sin(rad), 0])
-            dist_from_wall_p = self.calc_dist_from_wall(+1, Cell, self.poll_y, self.quad_pos)/self.max_detection_range
-            dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.poll_y, self.quad_pos)/self.max_detection_range
+            dist_from_wall_p = self.calc_dist_from_wall(+1, Cell, self.no_yaw_poll_y, self.quad_pos)/self.max_detection_range
+            dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.no_yaw_poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall = min([dist_from_wall_p, dist_from_wall_n])
             length = min(obs_length, dist_from_wall)
             length -= self.body_r/self.max_detection_range
@@ -480,8 +484,8 @@ class AgilePilotNode:
                 #include inf (this means there are no data, but I limit this case is larger than range_max)
                 obs_length=1
             Cell = np.array([np.cos(rad), np.sin(rad), 0])
-            dist_from_wall_p = self.calc_dist_from_wall(+1, Cell, self.poll_y, self.quad_pos)/self.max_detection_range
-            dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.poll_y, self.quad_pos)/self.max_detection_range
+            dist_from_wall_p = self.calc_dist_from_wall(+1, Cell, self.no_yaw_poll_y, self.quad_pos)/self.max_detection_range
+            dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.no_yaw_poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall = min(dist_from_wall_p, dist_from_wall_n)
             length = min(obs_length, dist_from_wall)
             length -= self.body_r/self.max_detection_range
