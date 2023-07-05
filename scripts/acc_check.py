@@ -50,8 +50,8 @@ class AccCheck:
         self.initialize_variable()
     
     def set_variable(self):
-        self.exec_max_gain = 1.5
-        self.check_distance = 1.4
+        self.exec_max_gain = 1.0
+        self.check_distance = 1.5
         self.stop_distance = 0.5
         self.x_range = 4.0
         self.vel_threshold = 1.2
@@ -60,9 +60,6 @@ class AccCheck:
         self.publish_commands = False
         self.pos_nav_mode = False
         self.command = FlightNav()
-        self.command.target = 1
-        self.command.pos_xy_nav_mode = 4
-        self.command.pos_z_nav_mode = 4
         self.geo_condition = GeoCondition.pos_acc
         self.change_to_pos = True
         self.state = None
@@ -70,7 +67,10 @@ class AccCheck:
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
-        self.command.pos_xy_nav_mode = 3
+        self.command.pos_xy_nav_mode = 6
+        self.command.pos_z_nav_mode = 2
+        self.command.control_frame = 0
+        self.command.target = 1 #COG
         self.command.target_pos_y = 0.0 + self.translation_position[1]
         self.command.target_pos_z = self.state.pos[2]
         self.command.target_vel_y = 0.0
@@ -107,9 +107,9 @@ class PosAcc(smach.State):
         while self.acc_check_node.state is None:
             rospy.sleep(0.01)
         if self.counter < self.inverval_num:
-            self.act_set()
             self.counter += 1
             while acc_check_node.geo_condition == GeoCondition.pos_acc:
+                self.act_set()
                 rospy.sleep(0.01)
             return 'neg_acc_prep'
         else:
@@ -138,8 +138,8 @@ class PosAccPrep(PosAcc):
         rospy.loginfo('Executing state PosAccPrep')
         while self.acc_check_node.state is None:
             rospy.sleep(0.01)
-        self.act_set()
         while acc_check_node.geo_condition == GeoCondition.buffer_place and self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold:
+            self.act_set()
             rospy.sleep(0.01)
         if acc_check_node.geo_condition == GeoCondition.pos_acc:
             return 'pos_acc'
@@ -155,8 +155,8 @@ class NegAcc(smach.State):
         rospy.loginfo('Executing state NegAcc')
         while self.acc_check_node.state is None:
             rospy.sleep(0.01)
-        self.act_set()
         while acc_check_node.geo_condition == GeoCondition.neg_acc:
+            self.act_set()
             rospy.sleep(0.01)
         return 'pos_acc_prep'
 
@@ -175,8 +175,8 @@ class NegAccPrep(NegAcc):
         rospy.loginfo('Executing state NegAccPrep')
         while self.acc_check_node.state is None:
             rospy.sleep(0.01)
-        self.act_set()
         while acc_check_node.geo_condition == GeoCondition.buffer_place and -self.acc_check_node.vel_threshold < self.acc_check_node.state.vel[0]:
+            self.act_set()
             rospy.sleep(0.01)
         if acc_check_node.geo_condition == GeoCondition.neg_acc:
             return 'neg_acc'
