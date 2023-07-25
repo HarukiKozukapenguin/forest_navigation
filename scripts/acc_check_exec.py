@@ -67,7 +67,7 @@ class AccCheck:
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
-        self.command.pos_xy_nav_mode = 6
+        self.command.pos_xy_nav_mode = 7
         self.command.pos_z_nav_mode = 2
         self.command.control_frame = 0
         self.command.target = 1 #COG
@@ -108,6 +108,7 @@ class PosAcc(smach.State):
             rospy.sleep(0.01)
         if self.counter < self.inverval_num:
             self.counter += 1
+            print("counter: ", self.counter)
             while acc_check_node.geo_condition == GeoCondition.pos_acc:
                 self.act_set()
                 rospy.sleep(0.01)

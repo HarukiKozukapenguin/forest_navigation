@@ -6,7 +6,7 @@
   <arg name="shift_y" default="0.0"/>
   <arg name="inverval_num" default="5"/>
 
-  <node pkg="forest_navigation" type="acc_check.py" name="acc_check" output="screen" ns="$(arg robot_ns)" >
+  <node pkg="forest_navigation" type="acc_check_exec.py" name="acc_check_exec" output="screen" ns="$(arg robot_ns)" >
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="robot_ns" value="$(arg robot_ns)" />
