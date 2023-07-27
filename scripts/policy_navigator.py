@@ -267,6 +267,8 @@ class AgilePilotNode:
         r = R.from_quat(att_aray)
         euler = r.as_euler('xyz')
         rotation_matrix = r.as_matrix()
+        # add noise to body tilt for real flight
+        body_tilt = np.array([rotation_matrix[0,2], rotation_matrix[1,2]]) + np.array([self.random_number(self.att_noise), self.random_number(self.att_noise)])
 
         # print("state.pos[0]: ", state.pos[0])
         # print("self.world_box[1]-1.2: ", self.world_box[1]-1.2)
@@ -299,7 +301,7 @@ class AgilePilotNode:
         wall_vec = np.array([(self.wall_pos - self.body_r) - state.pos[1], (self.wall_pos - self.body_r) + state.pos[1]])
 
         obs = np.concatenate([
-            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), rotation_matrix, state.omega,
+            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt, state.omega,
             np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)), np.array([self.body_r]), np.array([self.time_constant]), log_obs_vec, acc_distance
     ], axis=0).astype(np.float64)
 
