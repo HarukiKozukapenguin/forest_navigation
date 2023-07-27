@@ -11,6 +11,7 @@ from sensor_msgs.msg import LaserScan
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Float64MultiArray
 from std_msgs.msg import Time
+from std_msgs.msg import Float64
 # from sensor_msgs.msg import Image
 
 import torch
@@ -158,6 +159,8 @@ class AgilePilotNode:
         else:
             self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/polar_pixel", ObstacleArray,
                                                 self.obstacle_callback, queue_size=1, tcp_nodelay=True)
+        self.debug_min_obs_dist_sub = rospy.Subscriber("/" + quad_name + "/debug/min_obs_distance_with_body", Float64,
+                                          self.min_obs_dist_callback, queue_size=1, tcp_nodelay=True)
 
         # Command publishers
         self.linvel_pub = rospy.Publisher("/" + quad_name + "/uav/nav", FlightNav,
@@ -174,10 +177,19 @@ class AgilePilotNode:
         self.obs_obstacle_pub = rospy.Publisher("/" + quad_name + "/debug/obs_polar_pixel", ObstacleArray, queue_size=1)
         self.debug_linvel_pub = rospy.Publisher("/" + quad_name + "/debug/uav/nav", FlightNav,
                                           queue_size=1)
+        self.debug_min_obs_margin_pub = rospy.Publisher("/" + quad_name + "/debug/min_obs_margin", Float64,
+                                          queue_size=1)
         self.n_act = np.zeros(2)
 
         print("Initialization completed!")
 
+
+    def min_obs_dist_callback(self, min_obs_dist):
+        if "self.debug_min_obs_margin_pub" in locals():
+            min_obs_margin = min_obs_dist.data - self.body_r
+            min_obs_margin_msg = Float64()
+            min_obs_margin_msg.data = min_obs_margin
+            self.debug_min_obs_margin_pub.publish(min_obs_margin_msg)
 
     def state_callback(self, state_data):
         self.state = AgileQuadState(state_data,self.translation_position)
