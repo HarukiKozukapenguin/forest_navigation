@@ -264,9 +264,9 @@ class AgilePilotNode:
         # Convert state to vector observation
         goal_vel = self.goal_lin_vel
         att_aray = state.att
-        rotation_matrix = R.from_quat(att_aray)
-        euler = rotation_matrix.as_euler('xyz')
-        rotation_matrix = rotation_matrix.as_matrix().reshape((9,), order="F")
+        r = R.from_quat(att_aray)
+        euler = r.as_euler('xyz')
+        rotation_matrix = r.as_matrix()
 
         # print("state.pos[0]: ", state.pos[0])
         # print("self.world_box[1]-1.2: ", self.world_box[1]-1.2)
@@ -418,8 +418,8 @@ class AgilePilotNode:
         self.command.target_vel_z = self.state.vel[2]
 
         # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
-        rotation_matrix = R.from_quat(self.state.att)
-        euler = rotation_matrix.as_euler('xyz')
+        r = R.from_quat(self.state.att)
+        euler = r.as_euler('xyz')
         self.command.target_yaw = euler[2]
 
     def stop_callback(self, data):
@@ -434,8 +434,8 @@ class AgilePilotNode:
         self.command.target_vel_z = 0
 
         # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
-        rotation_matrix = R.from_quat(self.state.att)
-        euler = rotation_matrix.as_euler('xyz')
+        r = R.from_quat(self.state.att)
+        euler = r.as_euler('xyz')
         self.command.target_yaw = euler[2]
         self.linvel_pub.publish(self.command)
         self.publish_commands = False
@@ -510,9 +510,9 @@ class AgilePilotNode:
         return rad_list
 
     def calc_tilt(self):
-        rotation_matrix = R.from_quat(self.state.att)
-        self.yaw_deg: np.float32 = rotation_matrix.as_euler('xyz', degrees=True)[2] # deg
         self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
+        r = R.from_quat(self.state.att)
+        self.yaw_deg: np.float32 = r.as_euler('xyz', degrees=True)[2] # deg
 
     def bad_collision(self, obs_vec):
         return self.land_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
