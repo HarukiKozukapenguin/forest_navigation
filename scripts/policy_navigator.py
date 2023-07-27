@@ -103,8 +103,8 @@ class AgilePilotNode:
         self.fixed_flight_pos = 4.0
         self.translation_position = np.array([x, y],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
-        self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120, 134])
-        self.acc_theta_list = np.array([1, 4, 7, 10])
+        self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120]) # deg
+        self.acc_theta_list = np.array([1, 4, 7, 10]) # deg
         self.theta_num = len(self.theta_list)
         self.max_detection_range = 10 #max_detection_range when leraning
         # checked several rosbag, and I found that the normal flight rarely exceeds the tilts over 30 degrees
