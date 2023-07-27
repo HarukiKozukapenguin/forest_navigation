@@ -510,17 +510,17 @@ class AgilePilotNode:
         return rad_list
 
     def calc_tilt(self):
-        self.tilt = np.arccos(rotation_matrix.as_matrix()[2,2])
         r = R.from_quat(self.state.att)
         self.yaw_deg: np.float32 = r.as_euler('xyz', degrees=True)[2] # deg
+        self.tilt_ang = np.arccos(r.as_matrix()[2,2])
 
     def bad_collision(self, obs_vec):
-        return self.land_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
+        return self.land_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
     
     def landing_position_setting(self, obs_vec):
         # set the opposite direction of the nearest obstacle of the landing position
         self.command.pos_xy_nav_mode = 4
-        dist = self.body_r * (1-np.cos(self.tilt)) + self.dist_backup
+        dist = self.body_r * (1-np.cos(self.tilt_ang)) + self.dist_backup
         min_index = np.argmin(obs_vec)
         direction = -self.theta_list[-min_index-1] if min_index < self.theta_num else self.theta_list[min_index-self.theta_num] # deg
         self.command.target_pos_x = self.state.pos[0]+self.translation_position[0] - dist*np.cos(np.deg2rad(self.yaw_deg + direction))
@@ -543,7 +543,7 @@ class AgilePilotNode:
         self.land_pub.publish(Empty())
 
     def is_halt(self,obs_vec):
-        return self.max_halt_tilt < self.tilt and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
+        return self.max_halt_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
 
     def is_force_landing(self):
         diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,
