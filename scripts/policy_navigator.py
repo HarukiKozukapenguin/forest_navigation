@@ -137,6 +137,8 @@ class AgilePilotNode:
         learning_max_gain = 10.0
         self.exec_max_gain = 3.0
         self.wall_pos = 1.75
+        self.att_noise = np.deg2rad(2)
+        self.omega_noise = 0.2 # rad/s
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
         # self.vel_conversion = 1.0
         self.time_constant = rospy.get_param("~time_constant")/self.vel_conversion #0.366
@@ -267,6 +269,9 @@ class AgilePilotNode:
             if self.get_from_hokuyo:
                 self.hokuyo_time_pub.publish(hokuyo_time_msg)
 
+    def random_number(self, range):
+        return np.random.rand()*range*2-range
+
     def rl_example(self, state, obs_vec: np.array, acc_obs_vec: np.array, rl_policy=None):
         a = -1/self.beta
         b = 1-np.log(self.beta)
@@ -313,7 +318,8 @@ class AgilePilotNode:
         wall_vec = np.array([(self.wall_pos - self.body_r) - state.pos[1], (self.wall_pos - self.body_r) + state.pos[1]])
 
         obs = np.concatenate([
-            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt, state.omega,
+            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt,
+            np.array([state.omega[0]]) + self.random_number(self.omega_noise), np.array([state.omega[1]]) + self.random_number(self.omega_noise),
             np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)), np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]),
             log_obs_vec, acc_distance, np.array([0.0])
     ], axis=0).astype(np.float64)
