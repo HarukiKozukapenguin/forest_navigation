@@ -302,7 +302,8 @@ class AgilePilotNode:
 
         obs = np.concatenate([
             self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt, state.omega,
-            np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)), np.array([self.body_r]), np.array([self.time_constant]), log_obs_vec, acc_distance
+            np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)), np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]),
+            log_obs_vec, acc_distance, np.array([0.0])
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
