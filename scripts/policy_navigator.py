@@ -378,8 +378,12 @@ class AgilePilotNode:
         return self.command
     
     def load_rl_policy(self, policy_path):
+        # # -- load saved varaiables --
+        device = get_device("auto")
         print("============ policy_path: ", policy_path)
         policy_dir = policy_path  + "/policy.pth"
+        self.policy_load_setting(policy_dir, device)
+
         rms_dir = policy_path + "/rms.npz"
 
         act_mean = np.array([0.0, 0.0])[np.newaxis, :]
@@ -389,13 +393,16 @@ class AgilePilotNode:
         obs_mean = np.mean(rms_data["mean"], axis=0)
         obs_var = np.mean(rms_data["var"], axis=0)
 
-        # # -- load saved varaiables 
-        device = get_device("auto")
-
         # Create policy object
         policy = MlpLstmPolicy.load(policy_dir, device = device)
 
         return policy, obs_mean, obs_var, act_mean, act_std
+
+    def policy_load_setting(self, policy_dir, device):
+        saved_variables = torch.load(policy_dir, map_location=device)
+        (saved_variables['data'])["shared_lstm"]=True
+        (saved_variables['data'])["enable_critic_lstm"]=False
+        torch.save(saved_variables, policy_dir)
 
 
     def start_callback(self, data):
