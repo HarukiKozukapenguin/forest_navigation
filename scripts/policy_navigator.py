@@ -21,7 +21,7 @@ import numpy as np
 
 from scipy.spatial.transform import Rotation as R 
 from stable_baselines3.common.utils import get_device
-from sb3_contrib.ppo_recurrent import MlpLstmPolicy
+from middle_layer_network import MiddleLayerActorCriticPolicy
 # import csv
 import sys
 
@@ -318,10 +318,11 @@ class AgilePilotNode:
         wall_vec = np.array([(self.wall_pos - self.body_r) - state.pos[1], (self.wall_pos - self.body_r) + state.pos[1]])
 
         obs = np.concatenate([
-            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt,
+            np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]), self.n_act.reshape((2)), state.pos[0:2],
+            np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt,
             np.array([state.omega[0]]) + self.random_number(self.omega_noise), np.array([state.omega[1]]) + self.random_number(self.omega_noise),
-            np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)), np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]),
-            log_obs_vec, acc_distance, np.array([0.0])
+            np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)),
+            log_obs_vec, acc_distance
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
@@ -403,7 +404,7 @@ class AgilePilotNode:
         device = get_device("auto")
         print("============ policy_path: ", policy_path)
         policy_dir = policy_path  + "/policy.pth"
-        self.policy_load_setting(policy_dir, device)
+        # self.policy_load_setting(policy_dir, device)
 
         rms_dir = policy_path + "/rms.npz"
 
@@ -415,7 +416,7 @@ class AgilePilotNode:
         obs_var = np.mean(rms_data["var"], axis=0)
 
         # Create policy object
-        policy = MlpLstmPolicy.load(policy_dir, device = device)
+        policy = MiddleLayerActorCriticPolicy.load(policy_dir, device = device)
 
         return policy, obs_mean, obs_var, act_mean, act_std
 
