@@ -576,12 +576,12 @@ class AgilePilotNode:
         theta_list: list = [-theta for theta in self.acc_theta_list]
         theta_list.reverse()
         theta_list.extend(self.acc_theta_list.tolist())
-        acc_list = np.empty(0)
+        act_list = np.empty(0)
         for dist, theta in zip(obs_vec, theta_list):
             theta = np.deg2rad(theta)
-            acc = 2*np.sin(theta)*svel/(dist*self.max_detection_range*np.cos(theta)**2)
-            acc_list = np.append(acc_list, acc)
-        return acc_list
+            gain_normalized_act = 2*np.sin(theta)*svel/(dist*self.max_detection_range*np.cos(theta)**2)
+            act_list = np.append(act_list, gain_normalized_act)
+        return act_list
 
     def calc_dist_from_wall(self, sign: int, Cell: np.array, poll_y: np.array, quad_pos: np.array) -> float:
         y_d = (sign*self.wall_pos - quad_pos[1])
