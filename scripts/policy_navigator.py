@@ -217,9 +217,9 @@ class AgilePilotNode:
             hokuyo_time_msg.data = obs_data.header.stamp
         else:
             obs_vec: np.array = np.array(obs_data.boxel)
-            obs_vec -= self.body_r/self.max_detection_range
+            # obs_vec -= self.body_r/self.max_detection_range
             acc_obs_vec: np.array  = np.array(obs_data.acc_boxel)
-            acc_obs_vec -= self.body_r/self.max_detection_range
+            # acc_obs_vec -= self.body_r/self.max_detection_range
         if self.state is None:
             return
         # self.rl_policy = None
@@ -493,7 +493,7 @@ class AgilePilotNode:
             dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.no_yaw_poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall = min([dist_from_wall_p, dist_from_wall_n])
             length = min(obs_length, dist_from_wall)
-            length -= self.body_r/self.max_detection_range
+            # length -= self.body_r/self.max_detection_range
             obs_vec = np.append(obs_vec,length)
         acc_obs_vec = np.empty(0)
         for rad in acc_rad_list:
@@ -517,7 +517,7 @@ class AgilePilotNode:
             dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.no_yaw_poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall = min(dist_from_wall_p, dist_from_wall_n)
             length = min(obs_length, dist_from_wall)
-            length -= self.body_r/self.max_detection_range
+            # length -= self.body_r/self.max_detection_range
             acc_obs_vec = np.append(acc_obs_vec,length)
         return obs_vec, acc_obs_vec
 
@@ -537,7 +537,7 @@ class AgilePilotNode:
         self.tilt_ang = np.arccos(r.as_matrix()[2,2])
 
     def bad_collision(self, obs_vec):
-        return self.land_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
+        return self.land_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.collision_distance
     
     def landing_position_setting(self, obs_vec):
         # set the opposite direction of the nearest obstacle of the landing position
@@ -565,7 +565,7 @@ class AgilePilotNode:
         self.land_pub.publish(Empty())
 
     def is_halt(self,obs_vec):
-        return self.max_halt_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
+        return self.max_halt_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.collision_distance
 
     def is_force_landing(self):
         diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,
@@ -585,7 +585,7 @@ class AgilePilotNode:
         return act_list
 
     def calc_dist_from_wall(self, sign: int, Cell: np.array, poll_y: np.array, quad_pos: np.array) -> float:
-        y_d = (sign*self.wall_pos - quad_pos[1])
+        y_d = (sign*(self.wall_pos-self.body_r) - quad_pos[1])
         cos_theta = np.dot(Cell, poll_y)
         if cos_theta*y_d<=0:
             return self.max_detection_range
