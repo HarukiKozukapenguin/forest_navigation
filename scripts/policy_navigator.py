@@ -104,7 +104,7 @@ class AgilePilotNode:
         self.fixed_flight_pos = 4.0
         self.translation_position = np.array([x, y],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
-        self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120]) # deg
+        self.theta_list = np.array([5,15,25,35,45,55, 65, 75, 85, 95, 105, 115, 125]) # deg
         self.acc_theta_list = np.array([1, 4, 7, 10]) # deg
         self.theta_num = len(self.theta_list)
         self.max_detection_range = 10 #max_detection_range when leraning
@@ -118,7 +118,7 @@ class AgilePilotNode:
         self.is_delay = rospy.get_param("~delay")
         if self.is_delay:
             self.act_buffer = Buffer(0.020, 0.040, 2)
-            self.obs_buffer = Buffer(0.020, 0.075, 50)
+            self.obs_buffer = Buffer(0.020, 0.075, 49)
 
         quad_name = rospy.get_param("~robot_ns")
 
