@@ -137,8 +137,8 @@ class AgilePilotNode:
         learning_max_gain = 10.0
         self.exec_max_gain = 3.0
         self.wall_pos = 1.75
-        self.att_noise = np.deg2rad(2)
-        self.omega_noise = 0.2 # rad/s
+        self.att_noise = np.deg2rad(4.0)
+        self.omega_noise = 0.5 # rad/s
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
         # self.vel_conversion = 1.0
         self.time_constant = rospy.get_param("~time_constant")/self.vel_conversion #0.366
@@ -216,8 +216,10 @@ class AgilePilotNode:
             obs_vec, acc_obs_vec = self.LaserScan_to_obs_vec(obs_data)
             hokuyo_time_msg.data = obs_data.header.stamp
         else:
+            # normalized by max_detection_range
             obs_vec: np.array = np.array(obs_data.boxel)
             # obs_vec -= self.body_r/self.max_detection_range
+            # normalized by max_detectilog_obs_vecon_range
             acc_obs_vec: np.array  = np.array(obs_data.acc_boxel)
             # acc_obs_vec -= self.body_r/self.max_detection_range
         if self.state is None:
@@ -341,6 +343,7 @@ class AgilePilotNode:
             obs = self.obs_buffer.effect_delay(obs)
 
         obs = obs.reshape(-1, obs.shape[0])
+        print("obs: ", obs)
         norm_obs = self.normalize_obs(obs, obs_mean, obs_var)
         #  compute action
 
@@ -580,7 +583,7 @@ class AgilePilotNode:
         act_list = np.empty(0)
         for dist, theta in zip(obs_vec, theta_list):
             theta = np.deg2rad(theta)
-            gain_normalized_act = 2*np.sin(theta)*svel/(dist*self.max_detection_range*np.cos(theta)**2)
+            gain_normalized_act = 2*np.sin(theta)*svel/((dist*self.max_detection_range)*np.cos(theta)**2)
             act_list = np.append(act_list, gain_normalized_act)
         return act_list
 
