@@ -34,7 +34,7 @@ class GeoCondition:
 
 class AccCheck:
     def __init__(self) -> None:
-        rospy.init_node('acc_check', anonymous=False)
+        rospy.init_node('acc_check_exec', anonymous=False)
         x = rospy.get_param("~shift_x")
         y = rospy.get_param("~shift_y")
         self.translation_position = np.array([x, y],dtype="float32")
