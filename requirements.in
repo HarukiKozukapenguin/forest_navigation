@@ -7,3 +7,4 @@ torch==1.11+cu113
 stable-baselines3>=1.6.1a2 , <=1.6.2
 scipy==1.4.1
 -e git+https://github.com/HarukiKozukapenguin/stable-baselines3-contrib.git@master#egg=sb3_contrib
+python-dateutil>=2.8.2
