@@ -28,6 +28,7 @@ class ImportantObsNetwork(nn.Module):
             else:
                 self.layer.append(nn.Linear(last_layer_dim + important_obs_layers_dims, curr_layer_dim))
             last_layer_dim = curr_layer_dim
+        self.layer = nn.ModuleList(self.layer)
 
     def forward(self, x: th.Tensor, important_obs: th.Tensor):
         if (important_obs.device != x.device):
