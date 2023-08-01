@@ -23,10 +23,7 @@ class ImportantObsNetwork(nn.Module):
         self.layer: List[nn.Module] = []
         last_layer_dim:int = feature_dim
         for idx, curr_layer_dim in enumerate(net_arch):
-            if idx == len(net_arch) - 1:
-                self.layer.append(nn.Linear(last_layer_dim, curr_layer_dim))
-            else:
-                self.layer.append(nn.Linear(last_layer_dim + important_obs_layers_dims, curr_layer_dim))
+            self.layer.append(nn.Linear(last_layer_dim + important_obs_layers_dims, curr_layer_dim))
             last_layer_dim = curr_layer_dim
         self.layer = nn.ModuleList(self.layer)
 
@@ -38,10 +35,7 @@ class ImportantObsNetwork(nn.Module):
         for idx, layer in enumerate(self.layer):
             if (layer.weight.device != x.device):
                 layer = layer.to(x.device)
-            if idx == len(self.layer) - 1:
-                input = x.to(th.float32)
-            else:
-                input = th.cat((x, important_obs), dim=1).to(th.float32)
+            input = th.cat((x, important_obs), dim=1).to(th.float32)
             x = layer(input)
             x = self.activation_fn()(x)
         return x
