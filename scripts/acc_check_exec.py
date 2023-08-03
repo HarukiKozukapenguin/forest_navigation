@@ -32,7 +32,7 @@ class GeoCondition:
     buffer_place = 1
     neg_acc = 2
 
-class AccCheck:
+class AccCheckExec:
     def __init__(self) -> None:
         rospy.init_node('acc_check_exec', anonymous=False)
         x = rospy.get_param("~shift_x")
@@ -185,7 +185,7 @@ class NegAccPrep(NegAcc):
             return 'pos_acc_prep'
 
 if __name__ == '__main__':
-    acc_check_node = AccCheck()
+    acc_check_node = AccCheckExec()
     sm = smach.StateMachine(outcomes=['exit'])
     with sm:
         smach.StateMachine.add('POSACC', PosAcc(acc_check_node),
@@ -197,7 +197,7 @@ if __name__ == '__main__':
         smach.StateMachine.add('POSACCPREP', PosAccPrep(acc_check_node),
                                transitions={'pos_acc':'POSACC', 'neg_acc_prep':'NEGACCPREP'})
 
-    sis = smach_ros.IntrospectionServer('acc_check_server', sm, '/ACC_CHECK')
+    sis = smach_ros.IntrospectionServer('acc_check_exec_server', sm, '/ACC_CHECK_EXEC')
     sis.start()
 
     outcome = sm.execute()
