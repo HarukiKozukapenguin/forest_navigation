@@ -187,11 +187,10 @@ class AgilePilotNode:
 
 
     def min_obs_dist_callback(self, min_obs_dist):
-        if "self.debug_min_obs_margin_pub" in locals():
-            min_obs_margin = min_obs_dist.data - self.body_r
-            min_obs_margin_msg = Float64()
-            min_obs_margin_msg.data = min_obs_margin
-            self.debug_min_obs_margin_pub.publish(min_obs_margin_msg)
+        min_obs_margin = min_obs_dist.data - self.body_r
+        min_obs_margin_msg = Float64()
+        min_obs_margin_msg.data = min_obs_margin
+        self.debug_min_obs_margin_pub.publish(min_obs_margin_msg)
 
     def state_callback(self, state_data):
         self.state = AgileQuadState(state_data,self.translation_position)
