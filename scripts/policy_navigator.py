@@ -288,7 +288,11 @@ class AgilePilotNode:
     def random_number(self, range):
         return np.random.rand()*range*2-range
 
+
     def run_policy(self, state, obs_vec: np.array, acc_obs_vec: np.array, rl_policy=None):
+
+        t = rospy.get_time()
+
         a = -1/self.beta
         b = 1-np.log(self.beta)
         log_obs_vec = np.where(obs_vec < self.beta, a*obs_vec+b, -np.log(obs_vec))
@@ -312,9 +316,9 @@ class AgilePilotNode:
             inside_range &= self.world_box[i*2]<state.pos[i]<self.world_box[i*2+1]
         if self.goal or not inside_range:
             if self.goal:
-                print("Goal!")    
+                rospy.loginfo("Goal!")
             if not inside_range:
-                print("Out of range!")
+                rospy.logwarn_throttle(1.0, "Out of range!")
                 self.force_landing_pub.publish(Empty())
             self.command.pos_xy_nav_mode = 4
             self.command.target_pos_x = self.world_box[1]+self.translation_position[0]-1.2
@@ -409,8 +413,9 @@ class AgilePilotNode:
 
             self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
 
-        print("action: ", action)
-        print("state.vel[0]*self.vel_conversion: ", state.vel[0]*self.vel_conversion)
+        #print("action: ", action)
+        #print("state.vel[0]*self.vel_conversion: ", state.vel[0]*self.vel_conversion)
+        print("action: {}, inferece time: {}".format(action, rospy.get_time() - t))
 
         return self.command
 
