@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
-print("initialize")
 import rospy
 
 
-from std_msgs.msg import Empty
+from aerial_robot_msgs.msg import ObstacleArray, FlightNav
 from nav_msgs.msg import Odometry
-from aerial_robot_msgs.msg import ObstacleArray
-from aerial_robot_msgs.msg import FlightNav
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import LaserScan, Image
+from std_msgs.msg import Empty, Float64MultiArray, Time, Float64, UInt8
+
+
+import numpy as np
 from rospy.numpy_msg import numpy_msg
-from std_msgs.msg import Float64MultiArray
-from std_msgs.msg import Time
-from std_msgs.msg import Float64
-# from sensor_msgs.msg import Image
 
 import torch
-print("torch.cuda.is_available() is ",torch.cuda.is_available())
-print("torch.__version__ is ", torch.__version__)
-import numpy as np
+print("torch version: {}".format(torch.__version__))
+if not torch.cuda.is_available():
+    raise ValueError("cuda is not aviable in pytorch")
 
-from scipy.spatial.transform import Rotation as R 
+
+from scipy.spatial.transform import Rotation as R
 from stable_baselines3.common.utils import get_device
 from sb3_contrib.ppo_recurrent import MlpLstmPolicy
 # import csv
@@ -77,13 +75,13 @@ class Buffer:
 
 class AgilePilotNode:
     def __init__(self):
-        print("Initializing agile_pilot_node...")
         rospy.init_node('policy_navigator', anonymous=False)
 
         self.ppo_path = rospy.get_param("~ppo_path")
         self.get_from_hokuyo = rospy.get_param("~hokuyo")
         # self.real_transition = rospy.get_param("~real_transition")
         # print(self.real_transition)
+        self.flight_state = None
         self.publish_commands = False
         self.stop_navigation = False
         self.state = None
@@ -111,7 +109,6 @@ class AgilePilotNode:
         # checked several rosbag, and I found that the normal flight rarely exceeds the tilts over 30 degrees
         self.max_halt_tilt = np.deg2rad(60)
         self.land_tilt = np.deg2rad(40)
-        self.rl_policy = None
         self.goal = False
         # should change depending on world flame's origin
 
@@ -144,25 +141,15 @@ class AgilePilotNode:
         self.time_constant = rospy.get_param("~time_constant")/self.vel_conversion #0.366
         # self.time_constant = rospy.get_param("~time_constant") #0.366
         # self.time_constant = 0.366
-        # Logic subscribers
-        self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
-                                          queue_size=1, tcp_nodelay=True)
-        self.stop_sub = rospy.Subscriber("/" + quad_name + "/stop_navigation", Empty, self.stop_callback,
-                                          queue_size=1, tcp_nodelay=True)
-        
 
-        # Observation subscribers
-        self.odom_sub = rospy.Subscriber("/" + quad_name + "/uav/cog/odom", Odometry, self.state_callback,
-                                         queue_size=1, tcp_nodelay=True)
+        self.n_act = np.zeros(2)
 
-        if self.get_from_hokuyo:
-            self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/scan", LaserScan,
-                                                 self.obstacle_callback, queue_size=1, tcp_nodelay=True)
-        else:
-            self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/polar_pixel", ObstacleArray,
-                                                self.obstacle_callback, queue_size=1, tcp_nodelay=True)
-        self.debug_min_obs_dist_sub = rospy.Subscriber("/" + quad_name + "/debug/min_obs_distance_with_body", Float64,
-                                          self.min_obs_dist_callback, queue_size=1, tcp_nodelay=True)
+        # load policy
+        self.rl_policy = self.load_rl_policy(self.ppo_path)
+
+        rospy.loginfo("Initialization completed!")
+
+
 
         # Command publishers
         self.linvel_pub = rospy.Publisher("/" + quad_name + "/uav/nav", FlightNav,
@@ -181,9 +168,27 @@ class AgilePilotNode:
                                           queue_size=1)
         self.debug_min_obs_margin_pub = rospy.Publisher("/" + quad_name + "/debug/min_obs_margin", Float64,
                                           queue_size=1)
-        self.n_act = np.zeros(2)
 
-        print("Initialization completed!")
+        # Logic subscribers
+        self.start_sub = rospy.Subscriber("/" + quad_name + "/start_navigation", Empty, self.start_callback,
+                                          queue_size=1, tcp_nodelay=True)
+        self.stop_sub = rospy.Subscriber("/" + quad_name + "/stop_navigation", Empty, self.stop_callback,
+                                          queue_size=1, tcp_nodelay=True)
+        self.flight_state_sub = rospy.Subscriber("/" + quad_name + "/flight_state", UInt8, self.flight_state_callback,
+                                                 queue_size=1, tcp_nodelay=True)
+
+        # Observation subscribers
+        self.odom_sub = rospy.Subscriber("/" + quad_name + "/uav/cog/odom", Odometry, self.state_callback,
+                                         queue_size=1, tcp_nodelay=True)
+
+        if self.get_from_hokuyo:
+            self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/scan", LaserScan,
+                                                 self.obstacle_callback, queue_size=1, tcp_nodelay=True)
+        else:
+            self.obstacle_sub = rospy.Subscriber("/" + quad_name + "/polar_pixel", ObstacleArray,
+                                                self.obstacle_callback, queue_size=1, tcp_nodelay=True)
+        self.debug_min_obs_dist_sub = rospy.Subscriber("/" + quad_name + "/debug/min_obs_distance_with_body", Float64,
+                                          self.min_obs_dist_callback, queue_size=1, tcp_nodelay=True)
 
 
     def min_obs_dist_callback(self, min_obs_dist):
@@ -205,6 +210,9 @@ class AgilePilotNode:
         self.no_yaw_poll_y = no_yaw_rotation.as_matrix()[1,:]
         self.quad_pos = self.state.pos
 
+    def flight_state_callback(self, msg):
+        self.flight_state = msg.data
+
     def obstacle_callback(self, obs_data):
         # obstacle conversion depending on the type of sensor
         # range: 0.0~1.0 [m/self.max_detection_range]
@@ -221,7 +229,18 @@ class AgilePilotNode:
             acc_obs_vec -= self.body_r/self.max_detection_range
         if self.state is None:
             return
-        # self.rl_policy = None
+
+        if self.flight_state is None:
+            rospy.logwarn_throttle(1.0, "cannot get the flight state from robot, skip")
+            return
+
+        if self.flight_state != 5:
+            # refer to aerial_robot_control/include/aerial_robot_control/flight_navigation.h
+            # hover_state is 5
+            # TODO: convert to message
+            rospy.logwarn_throttle(1.0, "robot does not reach hover state, skip")
+            return
+
 
         # when there are bad collision before
         self.calc_tilt()
@@ -247,15 +266,13 @@ class AgilePilotNode:
             print("Move to emergency landing poisiton!")
             return
         # when there are no bad collision before
-        if self.ppo_path is not None and self.rl_policy is None:
-            self.rl_policy = self.load_rl_policy(self.ppo_path)
 
         obs_polar_pixel = ObstacleArray()
         obs_polar_pixel.boxel = obs_vec
         obs_polar_pixel.acc_boxel = acc_obs_vec
         self.obs_obstacle_pub.publish(obs_polar_pixel)
 
-        vel_msg = self.rl_example(state=self.state, obs_vec=obs_vec, acc_obs_vec=acc_obs_vec, rl_policy=self.rl_policy)
+        vel_msg = self.run_policy(state=self.state, obs_vec=obs_vec, acc_obs_vec=acc_obs_vec, rl_policy=self.rl_policy)
         # publisher for debugging in any situation
         self.debug_linvel_pub.publish(vel_msg)
 
@@ -271,7 +288,7 @@ class AgilePilotNode:
     def random_number(self, range):
         return np.random.rand()*range*2-range
 
-    def rl_example(self, state, obs_vec: np.array, acc_obs_vec: np.array, rl_policy=None):
+    def run_policy(self, state, obs_vec: np.array, acc_obs_vec: np.array, rl_policy=None):
         a = -1/self.beta
         b = 1-np.log(self.beta)
         log_obs_vec = np.where(obs_vec < self.beta, a*obs_vec+b, -np.log(obs_vec))
@@ -396,11 +413,10 @@ class AgilePilotNode:
         print("state.vel[0]*self.vel_conversion: ", state.vel[0]*self.vel_conversion)
 
         return self.command
-    
+
     def load_rl_policy(self, policy_path):
         # # -- load saved varaiables --
         device = get_device("auto")
-        print("============ policy_path: ", policy_path)
         policy_dir = policy_path  + "/policy.pth"
         self.policy_load_setting(policy_dir, device)
 
@@ -536,7 +552,7 @@ class AgilePilotNode:
 
     def bad_collision(self, obs_vec):
         return self.land_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
-    
+
     def landing_position_setting(self, obs_vec):
         # set the opposite direction of the nearest obstacle of the landing position
         self.command.pos_xy_nav_mode = 4
@@ -552,7 +568,6 @@ class AgilePilotNode:
         self.command.target_yaw = 0.0
         return self.command
 
-    
     def is_landing(self):
         diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,
             self.state.pos[1]+self.translation_position[1] - self.command.target_pos_y])
