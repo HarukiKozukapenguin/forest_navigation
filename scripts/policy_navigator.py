@@ -19,7 +19,7 @@ if not torch.cuda.is_available():
 
 from scipy.spatial.transform import Rotation as R
 from stable_baselines3.common.utils import get_device
-from sb3_contrib.ppo_recurrent import MlpLstmPolicy
+from middle_layer_network import MiddleLayerActorCriticPolicy
 # import csv
 import sys
 
@@ -102,7 +102,7 @@ class AgilePilotNode:
         self.fixed_flight_pos = 4.0
         self.translation_position = np.array([x, y],dtype="float32")
         # last value of theta_list is 134 for the range of the quadrotor
-        self.theta_list = np.array([5,15,25,35,45,60,75,90, 105, 120]) # deg
+        self.theta_list = np.array([5,15,25,35,45,55, 65, 75, 85, 95, 105, 115, 125]) # deg
         self.acc_theta_list = np.array([1, 4, 7, 10]) # deg
         self.theta_num = len(self.theta_list)
         self.max_detection_range = 10 #max_detection_range when leraning
@@ -115,7 +115,7 @@ class AgilePilotNode:
         self.is_delay = rospy.get_param("~delay")
         if self.is_delay:
             self.act_buffer = Buffer(0.020, 0.040, 2)
-            self.obs_buffer = Buffer(0.020, 0.075, 50)
+            self.obs_buffer = Buffer(0.020, 0.075, 49)
 
         quad_name = rospy.get_param("~robot_ns")
 
@@ -134,8 +134,8 @@ class AgilePilotNode:
         learning_max_gain = 10.0
         self.exec_max_gain = 3.0
         self.wall_pos = 1.75
-        self.att_noise = np.deg2rad(2)
-        self.omega_noise = 0.2 # rad/s
+        self.att_noise = np.deg2rad(4.0)
+        self.omega_noise = 0.5 # rad/s
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
         # self.vel_conversion = 1.0
         self.time_constant = rospy.get_param("~time_constant")/self.vel_conversion #0.366
@@ -223,10 +223,12 @@ class AgilePilotNode:
             obs_vec, acc_obs_vec = self.LaserScan_to_obs_vec(obs_data)
             hokuyo_time_msg.data = obs_data.header.stamp
         else:
+            # normalized by max_detection_range
             obs_vec: np.array = np.array(obs_data.boxel)
-            obs_vec -= self.body_r/self.max_detection_range
+            # obs_vec -= self.body_r/self.max_detection_range
+            # normalized by max_detectilog_obs_vecon_range
             acc_obs_vec: np.array  = np.array(obs_data.acc_boxel)
-            acc_obs_vec -= self.body_r/self.max_detection_range
+            # acc_obs_vec -= self.body_r/self.max_detection_range
         if self.state is None:
             return
 
@@ -338,10 +340,11 @@ class AgilePilotNode:
         wall_vec = np.array([(self.wall_pos - self.body_r) - state.pos[1], (self.wall_pos - self.body_r) + state.pos[1]])
 
         obs = np.concatenate([
-            self.n_act.reshape((2)), state.pos[0:2], np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt,
+            np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]), self.n_act.reshape((2)), state.pos[0:2],
+            np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt,
             np.array([state.omega[0]]) + self.random_number(self.omega_noise), np.array([state.omega[1]]) + self.random_number(self.omega_noise),
-            np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)), np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]),
-            log_obs_vec, acc_distance, np.array([0.0])
+            np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)),
+            log_obs_vec, acc_distance
     ], axis=0).astype(np.float64)
 
         # observation_msg = Float64MultiArray()
@@ -360,6 +363,7 @@ class AgilePilotNode:
             obs = self.obs_buffer.effect_delay(obs)
 
         obs = obs.reshape(-1, obs.shape[0])
+        print("obs: ", obs)
         norm_obs = self.normalize_obs(obs, obs_mean, obs_var)
         #  compute action
 
@@ -423,7 +427,7 @@ class AgilePilotNode:
         # # -- load saved varaiables --
         device = get_device("auto")
         policy_dir = policy_path  + "/policy.pth"
-        self.policy_load_setting(policy_dir, device)
+        # self.policy_load_setting(policy_dir, device)
 
         rms_dir = policy_path + "/rms.npz"
 
@@ -435,7 +439,7 @@ class AgilePilotNode:
         obs_var = np.mean(rms_data["var"], axis=0)
 
         # Create policy object
-        policy = MlpLstmPolicy.load(policy_dir, device = device)
+        policy = MiddleLayerActorCriticPolicy.load(policy_dir, device = device)
 
         return policy, obs_mean, obs_var, act_mean, act_std
 
@@ -512,7 +516,7 @@ class AgilePilotNode:
             dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.no_yaw_poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall = min([dist_from_wall_p, dist_from_wall_n])
             length = min(obs_length, dist_from_wall)
-            length -= self.body_r/self.max_detection_range
+            # length -= self.body_r/self.max_detection_range
             obs_vec = np.append(obs_vec,length)
         acc_obs_vec = np.empty(0)
         for rad in acc_rad_list:
@@ -536,7 +540,7 @@ class AgilePilotNode:
             dist_from_wall_n = self.calc_dist_from_wall(-1, Cell, self.no_yaw_poll_y, self.quad_pos)/self.max_detection_range
             dist_from_wall = min(dist_from_wall_p, dist_from_wall_n)
             length = min(obs_length, dist_from_wall)
-            length -= self.body_r/self.max_detection_range
+            # length -= self.body_r/self.max_detection_range
             acc_obs_vec = np.append(acc_obs_vec,length)
         return obs_vec, acc_obs_vec
 
@@ -583,7 +587,7 @@ class AgilePilotNode:
         self.land_pub.publish(Empty())
 
     def is_halt(self,obs_vec):
-        return self.max_halt_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.body_r + self.collision_distance
+        return self.max_halt_tilt < self.tilt_ang and np.min(obs_vec*self.max_detection_range) < self.collision_distance
 
     def is_force_landing(self):
         diff = np.array([self.state.pos[0]+self.translation_position[0] - self.command.target_pos_x,
@@ -595,15 +599,15 @@ class AgilePilotNode:
         theta_list: list = [-theta for theta in self.acc_theta_list]
         theta_list.reverse()
         theta_list.extend(self.acc_theta_list.tolist())
-        acc_list = np.empty(0)
+        act_list = np.empty(0)
         for dist, theta in zip(obs_vec, theta_list):
             theta = np.deg2rad(theta)
-            acc = 2*np.sin(theta)*svel/(dist*self.max_detection_range*np.cos(theta)**2)
-            acc_list = np.append(acc_list, acc)
-        return acc_list
+            gain_normalized_act = 2*np.sin(theta)*svel/((dist*self.max_detection_range)*np.cos(theta)**2)
+            act_list = np.append(act_list, gain_normalized_act)
+        return act_list
 
     def calc_dist_from_wall(self, sign: int, Cell: np.array, poll_y: np.array, quad_pos: np.array) -> float:
-        y_d = (sign*self.wall_pos - quad_pos[1])
+        y_d = (sign*(self.wall_pos-self.body_r) - quad_pos[1])
         cos_theta = np.dot(Cell, poll_y)
         if cos_theta*y_d<=0:
             return self.max_detection_range
