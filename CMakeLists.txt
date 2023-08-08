@@ -18,6 +18,8 @@ find_package(catkin REQUIRED
   std_msgs
 )
 
+catkin_python_setup()
+
 catkin_package(
   CATKIN_DEPENDS
 )

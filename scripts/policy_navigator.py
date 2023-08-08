@@ -19,7 +19,7 @@ if not torch.cuda.is_available():
 
 from scipy.spatial.transform import Rotation as R
 from stable_baselines3.common.utils import get_device
-from middle_layer_network import MiddleLayerActorCriticPolicy
+from forest_navigation.middle_layer_network import MiddleLayerActorCriticPolicy
 # import csv
 import sys
 
