@@ -132,7 +132,11 @@ class AgilePilotNode:
         self.force_landing_dist_threshold = 0.40
         self.beta = 0.002 # min distance for linearization
         learning_max_gain = 10.0
-        self.exec_max_gain = 3.0
+        self.exec_max_gain = 10.0
+        if rospy.get_param("~same_gain_in_exec_policy"):
+            self.act_std_max_gain = self.exec_max_gain
+        else:
+            self.act_std_max_gain = 3.0
         self.wall_pos = 1.75
         self.att_noise = np.deg2rad(4.0)
         self.omega_noise = 0.5 # rad/s
@@ -401,7 +405,7 @@ class AgilePilotNode:
             self.command.target_yaw = 0.0 #(1-momentum)*(euler[2] + action[2])+momentum*self.command.target_yaw
 
         else:
-            action = np.array([self.exec_max_gain, 0.0])
+            action = np.array([self.act_std_max_gain, 0.0])
 
             momentum = 0.0
             self.command.target_pos_x = (1-momentum)*(state.pos[0] + self.translation_position[0])+momentum*self.command.target_pos_x
@@ -432,7 +436,7 @@ class AgilePilotNode:
         rms_dir = policy_path + "/rms.npz"
 
         act_mean = np.array([0.0, 0.0])[np.newaxis, :]
-        act_std = np.array([self.exec_max_gain, self.exec_max_gain])[np.newaxis, :]
+        act_std = np.array([self.act_std_max_gain, self.act_std_max_gain])[np.newaxis, :]
 
         rms_data = np.load(rms_dir)
         obs_mean = np.mean(rms_data["mean"], axis=0)
