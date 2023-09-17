@@ -50,11 +50,11 @@ class AccCheck:
         self.initialize_variable()
     
     def set_variable(self):
-        self.exec_max_gain = 1.0
-        self.check_distance = 1.5
+        self.exec_max_gain = 0.4
+        self.check_distance = 0.5
         self.stop_distance = 0.5
-        self.x_range = 4.0
-        self.vel_threshold = 1.2
+        self.x_range = 2.0
+        self.vel_threshold = 0.6
     
     def initialize_variable(self):
         self.publish_commands = False
@@ -142,6 +142,9 @@ class PosAccPrep(PosAcc):
         while acc_check_node.geo_condition == GeoCondition.buffer_place and self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold:
             self.act_set()
             rospy.sleep(0.01)
+            rospy.loginfo("vel: %f", self.acc_check_node.state.vel[0])
+            rospy.loginfo("vel_threshold: %f", self.acc_check_node.vel_threshold)
+            rospy.loginfo("self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold: %d", self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold)
         if acc_check_node.geo_condition == GeoCondition.pos_acc:
             return 'pos_acc'
         else:
@@ -179,6 +182,9 @@ class NegAccPrep(NegAcc):
         while acc_check_node.geo_condition == GeoCondition.buffer_place and -self.acc_check_node.vel_threshold < self.acc_check_node.state.vel[0]:
             self.act_set()
             rospy.sleep(0.01)
+            rospy.loginfo("vel: %f", self.acc_check_node.state.vel[0])
+            rospy.loginfo("-vel_threshold: %f", -self.acc_check_node.vel_threshold)
+            rospy.loginfo("-self.acc_check_node.state.vel[0] < -acc_check_node.vel_threshold: %d", -self.acc_check_node.vel_threshold < self.acc_check_node.state.vel[0])
         if acc_check_node.geo_condition == GeoCondition.neg_acc:
             return 'neg_acc'
         else:
