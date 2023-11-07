@@ -122,7 +122,7 @@ class AgilePilotNode:
         self.command = FlightNav()
         self.command.target = 1
         self.command.pos_xy_nav_mode = 4
-        self.command.pos_z_nav_mode = 4
+        self.command.pos_z_nav_mode = 0
 
         self.lstm_states = None
         self.body_r = rospy.get_param("~body_r")  #radius of quadrotor(0.25~0.5)
