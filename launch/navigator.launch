@@ -2,7 +2,7 @@
 <launch>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" default="multirotor$(arg robot_id)" />
-  <arg name="hokuyo" default="True" />
+  <arg name="hokuyo_raw_data" default="True" />
   <arg name="shift_x" default="0.0"/>
   <arg name="shift_y" default="0.0"/>
   <arg name="body_r" default="0.25"/>
@@ -15,7 +15,7 @@
 
   <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" >
     <param name="ppo_path" value="$(find agile_multirotor)/exec_policy/RecurrentPPO_254" />
-    <param name="hokuyo" value="$(arg hokuyo)" />
+    <param name="hokuyo" value="$(arg hokuyo_raw_data)" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
     <param name="body_r" type="double" value="$(arg body_r)" />
