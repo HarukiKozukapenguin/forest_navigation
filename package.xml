@@ -10,6 +10,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>python3-catkin-pkg-modules</buildtool_depend>
+  <build_depend>catkin_vertualenv</build_depend>
   <build_depend>aerial_robot_control</build_depend>
   <build_depend>aerial_robot_model</build_depend>
   <build_depend>aerial_robot_msgs</build_depend>
@@ -34,5 +35,9 @@
   <exec_depend>python3-setuptools</exec_depend>
   <exec_depend>resource_retriever</exec_depend>
   <exec_depend>pdb</exec_depend>
+
+  <export>
+    <pip_requirements>requirements.txt</pip_requirements>
+  </export>
 
 </package>
