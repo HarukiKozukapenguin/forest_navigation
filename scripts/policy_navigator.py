@@ -132,7 +132,7 @@ class AgilePilotNode:
         self.force_landing_dist_threshold = 0.40
         self.beta = 0.002 # min distance for linearization
         learning_max_gain = 10.0
-        self.exec_max_gain = 3.0
+        self.exec_max_gain = rospy.get_param("~max_gain")
         self.wall_pos = 1.75
         self.att_noise = np.deg2rad(4.0)
         self.omega_noise = 0.5 # rad/s
