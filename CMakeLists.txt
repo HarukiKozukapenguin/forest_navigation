@@ -32,7 +32,7 @@ include_directories(
 catkin_generate_virtualenv(
   INPUT_REQUIREMENTS requirements.in
   PYTHON_INTERPRETER python3.8
-  USE_SYSTEM_PACKAGES FALSE
+  USE_SYSTEM_PACKAGES TRUE
   ISOLATE_REQUIREMENTS TRUE
   CHECK_VENV FALSE
   )
