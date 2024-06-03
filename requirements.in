@@ -1,9 +1,6 @@
-wheel==0.36.2
-numpy==1.21.4
---find-links https://download.pytorch.org/whl/torch_stable.html
-torch==1.11+cu113
+torch @ https://developer.download.nvidia.cn/compute/redist/jp/v511/pytorch/torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
 # torchvision
 # torchaudio
 stable-baselines3>=1.6.1a2, <1.6.2
-scipy==1.4.1
+# scipy==1.4.1
 -e git+https://github.com/HarukiKozukapenguin/stable-baselines3-contrib.git@middle_layer/important_element#egg=sb3_contrib
