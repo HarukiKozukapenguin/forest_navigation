@@ -217,7 +217,7 @@ class AgilePilotNode:
             tree_pos = Point()
             tree_pos = tree_data.pose.position
             if (self.min_tree_pos[0] <tree_pos.x < self.max_tree_pos[0]) and \
-               (self.min_tree_pos[1] <tree_pos.x < self.max_tree_pos[1]):
+               (self.min_tree_pos[1] <tree_pos.y < self.max_tree_pos[1]):
                 self.obstacle_pos_list.append(tree_pos)
                 self.obstacle_pos_list_num += 1
         if self.min_start_obstacles <= self.obstacle_pos_list_num:
