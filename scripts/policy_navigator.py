@@ -133,7 +133,8 @@ class AgilePilotNode:
         self.beta = 0.002 # min distance for linearization
         learning_max_gain = 10.0
         self.exec_max_gain = rospy.get_param("~max_gain")
-        self.wall_pos = 1.75
+        self.wall_pos_x = 4.00
+        self.wall_pos_y = 1.75
         self.att_noise = np.deg2rad(4.0)
         self.omega_noise = 0.5 # rad/s
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
@@ -337,7 +338,7 @@ class AgilePilotNode:
 
         policy, obs_mean, obs_var, act_mean, act_std = rl_policy
 
-        wall_vec = np.array([(self.wall_pos - self.body_r) - state.pos[1], (self.wall_pos - self.body_r) + state.pos[1]])
+        wall_vec = np.array([(self.wall_pos_y - self.body_r) - state.pos[1], (self.wall_pos_y - self.body_r) + state.pos[1]])
 
         obs = np.concatenate([
             np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]), self.n_act.reshape((2)), state.pos[0:2],
@@ -607,7 +608,7 @@ class AgilePilotNode:
         return act_list
 
     def calc_dist_from_wall(self, sign: int, Cell: np.array, poll_y: np.array, quad_pos: np.array) -> float:
-        y_d = (sign*(self.wall_pos-self.body_r) - quad_pos[1])
+        y_d = (sign*(self.wall_pos_y-self.body_r) - quad_pos[1])
         cos_theta = np.dot(Cell, poll_y)
         if cos_theta*y_d<=0:
             return self.max_detection_range
