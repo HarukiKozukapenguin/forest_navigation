@@ -6,7 +6,8 @@ from aerial_robot_msgs.msg import ObstacleArray, FlightNav
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan, Image
 from std_msgs.msg import Empty, Float64MultiArray, Time, Float64, UInt8
-
+from visualization_msgs.msg import MarkerArray
+from geometry_msgs.msg import Vector3, Point
 
 import numpy as np
 from rospy.numpy_msg import numpy_msg
@@ -135,6 +136,12 @@ class AgilePilotNode:
         self.exec_max_gain = rospy.get_param("~max_gain")
         self.wall_pos_x = 4.00
         self.wall_pos_y = 1.75
+        self.min_tree_pos = np.array([0.0,-self.wall_pos_y],dtype="float32") + self.translation_position
+        self.max_tree_pos = np.array([self.wall_pos_x,+self.wall_pos_y],dtype="float32") + self.translation_position
+
+        self.min_start_obstacles: int = 2
+        self.enough_obstacles = False
+
         self.att_noise = np.deg2rad(4.0)
         self.omega_noise = 0.5 # rad/s
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
@@ -144,6 +151,10 @@ class AgilePilotNode:
         # self.time_constant = 0.366
 
         self.n_act = np.zeros(2)
+
+        # initialize radius_list of the obs
+        self.obstacle_pos_list = []
+        self.obstacle_pos_list_num:int = 0
 
         # load policy
         self.rl_policy = self.load_rl_policy(self.ppo_path)
@@ -190,7 +201,30 @@ class AgilePilotNode:
                                                 self.obstacle_callback, queue_size=1, tcp_nodelay=True)
         self.debug_min_obs_dist_sub = rospy.Subscriber("/" + quad_name + "/debug/min_obs_distance_with_body", Float64,
                                           self.min_obs_dist_callback, queue_size=1, tcp_nodelay=True)
+        # WIP: evaluate in the case of moving obstacle, and estimated from hokuyo_estimation
+        if not self.get_from_hokuyo:
+            self.check_obs_num_in_range_sub = rospy.Subscriber("/" + quad_name + "/visualization_marker", MarkerArray,
+                                                        self.min_obs_in_range_callback, queue_size=1, tcp_nodelay=True)
 
+    # calc listed obstacle num
+    def min_obs_in_range_callback(self, markers_msg):
+        # self.obstacle_pos_list is aimed for debug
+        self.obstacle_pos_list.clear()
+        self.obstacle_pos_list_num = 0
+        for tree_data in markers_msg.markers:
+            if tree_data.ns == "tree_diameter":
+                continue
+            tree_pos = Point()
+            tree_pos = tree_data.pose.position
+            if (self.min_tree_pos[0] <tree_pos.x < self.max_tree_pos[0]) and \
+               (self.min_tree_pos[1] <tree_pos.x < self.max_tree_pos[1]):
+                self.obstacle_pos_list.append(tree_pos)
+                self.obstacle_pos_list_num += 1
+        if self.min_start_obstacles <= self.obstacle_pos_list_num:
+            self.enough_obstacles = True
+            # debug: obstacle number and self.enough_obstacles
+        rospy.loginfo("self.obstacle_pos_list_num is %d", self.obstacle_pos_list_num)
+        rospy.loginfo("self.enough_obstacles is %d", self.enough_obstacles)
 
     def min_obs_dist_callback(self, min_obs_dist):
         min_obs_margin = min_obs_dist.data - self.body_r
@@ -279,7 +313,7 @@ class AgilePilotNode:
         # publisher for debugging in any situation
         self.debug_linvel_pub.publish(vel_msg)
 
-        if self.publish_commands:
+        if self.publish_commands and self.enough_obstacles:
             # debug to show whith direction quadrotor go in given position
             # print("x_state: ",self.state.pos[0])
             # print("x_direction: ",vel_msg.target_pos_x-(self.state.pos[0]+self.translation_position[0]))
