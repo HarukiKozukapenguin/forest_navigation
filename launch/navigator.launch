@@ -2,7 +2,7 @@
 <launch>
   <arg name="robot_id" default="" />
   <arg name="robot_ns" default="multirotor$(arg robot_id)" />
-  <arg name="hokuyo_raw_data" default="True" />
+  <arg name="hokuyo_raw_data" default="False" />
   <arg name="shift_x" default="0.0"/>
   <arg name="shift_y" default="0.0"/>
   <arg name="body_r" default="0.25"/>
