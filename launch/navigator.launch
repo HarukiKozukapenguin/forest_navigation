@@ -11,11 +11,12 @@
   <arg name="max_gain" default="3.0"/>
   <arg name="delay" default="False" />
   <arg name="real_area" default="True" />
+  <arg name="policy" default="RecurrentPPO_269" />
   <!-- <arg name="real_machine" default="True" /> -->
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
 
   <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" >
-    <param name="ppo_path" value="$(find agile_multirotor)/exec_policy/RecurrentPPO_269" />
+    <param name="ppo_path" value="$(find agile_multirotor)/exec_policy/$(arg policy)" />
     <param name="hokuyo" value="$(arg hokuyo_raw_data)" />
     <param name="shift_x" type="double" value="$(arg shift_x)" />
     <param name="shift_y" type="double" value="$(arg shift_y)" />
