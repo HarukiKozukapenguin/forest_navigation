@@ -638,7 +638,13 @@ class AgilePilotNode:
         act_list = np.empty(0)
         for dist, theta in zip(obs_vec, theta_list):
             theta = np.deg2rad(theta)
-            gain_normalized_act = 2*np.sin(theta)*svel/((dist*self.max_detection_range)*np.cos(theta)**2)
+            a = -1/(self.beta**2)
+            b = 2/self.beta
+            if dist < self.beta:
+                reciprocal_dist = a*dist+b
+            else:
+                reciprocal_dist = 1/dist
+            gain_normalized_act = 2*np.sin(theta)*svel*reciprocal_dist/((self.max_detection_range)*np.cos(theta)**2)
             act_list = np.append(act_list, gain_normalized_act)
         return act_list
 
