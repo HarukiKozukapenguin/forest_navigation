@@ -135,7 +135,7 @@ class AgilePilotNode:
         learning_max_gain = 10.0
         self.exec_max_gain = rospy.get_param("~max_gain")
         self.body_move_area_x = 4.00
-        self.body_move_area_y = 0.05
+        self.body_move_area_y = 0.10
         self.wall_pos_y = 1.75
         self.min_tree_pos = np.array([0.0,-self.body_move_area_y],dtype="float32") + self.translation_position
         self.max_tree_pos = np.array([self.body_move_area_x,+self.body_move_area_y],dtype="float32") + self.translation_position
