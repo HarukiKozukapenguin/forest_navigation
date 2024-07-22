@@ -11,7 +11,7 @@
   <arg name="max_gain" default="3.0"/>
   <arg name="delay" default="False" />
   <arg name="real_area" default="True" />
-  <arg name="policy" default="RecurrentPPO_271" />
+  <arg name="policy" default="RecurrentPPO_273" />
   <!-- <arg name="real_machine" default="True" /> -->
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
 
