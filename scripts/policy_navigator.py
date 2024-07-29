@@ -140,7 +140,7 @@ class AgilePilotNode:
         self.min_tree_pos = np.array([0.0,-self.body_move_area_y],dtype="float32") + self.translation_position
         self.max_tree_pos = np.array([self.body_move_area_x,+self.body_move_area_y],dtype="float32") + self.translation_position
 
-        self.min_start_obstacles: int = 2
+        self.min_start_obstacles: int = rospy.get_param("~min_start_obstacles")
         self.enough_obstacles = False
 
         self.att_noise = np.deg2rad(4.0)
