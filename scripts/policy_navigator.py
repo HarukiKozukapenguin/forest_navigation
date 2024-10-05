@@ -152,6 +152,7 @@ class AgilePilotNode:
         # self.time_constant = 0.366
 
         self.n_act = np.zeros(2)
+        self.obs_data = None
 
         # initialize radius_list of the obs
         self.obstacle_pos_list = []
@@ -246,24 +247,21 @@ class AgilePilotNode:
         self.no_yaw_poll_y = no_yaw_rotation.as_matrix()[1,:]
         self.quad_pos = self.state.pos
 
-    def flight_state_callback(self, msg):
-        self.flight_state = msg.data
+        if self.obs_data is None:
+            return
 
-    def obstacle_callback(self, obs_data):
-        # obstacle conversion depending on the type of sensor
-        # range: 0.0~1.0 [m/self.max_detection_range]
         if self.goal:
             return
         if self.get_from_hokuyo:
             hokuyo_time_msg = Time()
-            obs_vec, acc_obs_vec = self.LaserScan_to_obs_vec(obs_data)
-            hokuyo_time_msg.data = obs_data.header.stamp
+            obs_vec, acc_obs_vec = self.LaserScan_to_obs_vec(self.obs_data)
+            hokuyo_time_msg.data = self.obs_data.header.stamp
         else:
             # normalized by max_detection_range
-            obs_vec: np.array = np.array(obs_data.boxel)
+            obs_vec: np.array = np.array(self.obs_data.boxel)
             # obs_vec -= self.body_r/self.max_detection_range
             # normalized by max_detectilog_obs_vecon_range
-            acc_obs_vec: np.array  = np.array(obs_data.acc_boxel)
+            acc_obs_vec: np.array  = np.array(self.obs_data.acc_boxel)
             # acc_obs_vec -= self.body_r/self.max_detection_range
         if self.state is None:
             return
@@ -322,6 +320,15 @@ class AgilePilotNode:
             self.linvel_pub.publish(vel_msg)
             if self.get_from_hokuyo:
                 self.hokuyo_time_pub.publish(hokuyo_time_msg)
+
+
+    def flight_state_callback(self, msg):
+        self.flight_state = msg.data
+
+    def obstacle_callback(self, obs_data):
+        self.obs_data = obs_data
+        # obstacle conversion depending on the type of sensor
+        # range: 0.0~1.0 [m/self.max_detection_range]
 
     def random_number(self, range):
         return np.random.rand()*range*2-range
