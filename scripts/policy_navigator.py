@@ -224,8 +224,8 @@ class AgilePilotNode:
         if self.min_start_obstacles <= self.obstacle_pos_list_num:
             self.enough_obstacles = True
             # debug: obstacle number and self.enough_obstacles
-        rospy.loginfo("self.obstacle_pos_list_num is %d", self.obstacle_pos_list_num)
-        rospy.loginfo("self.enough_obstacles is %d", self.enough_obstacles)
+        rospy.loginfo_throttle(2, "self.obstacle_pos_list_num is %d", self.obstacle_pos_list_num)
+        rospy.loginfo_throttle(2,"self.enough_obstacles is %d", self.enough_obstacles)
 
     def min_obs_dist_callback(self, min_obs_dist):
         min_obs_margin = min_obs_dist.data - self.body_r
@@ -399,7 +399,7 @@ class AgilePilotNode:
             obs = self.obs_buffer.effect_delay(obs)
 
         obs = obs.reshape(-1, obs.shape[0])
-        print("obs: ", obs)
+        # print("obs: ", obs)
         norm_obs = self.normalize_obs(obs, obs_mean, obs_var)
         #  compute action
 
@@ -455,7 +455,7 @@ class AgilePilotNode:
 
         #print("action: ", action)
         #print("state.vel[0]*self.vel_conversion: ", state.vel[0]*self.vel_conversion)
-        print("action: {}, inferece time: {}".format(action, rospy.get_time() - t))
+        rospy.loginfo_throttle(1, "action: {}, inferece time: {}".format(action, rospy.get_time() - t))
 
         return self.command
 
@@ -487,7 +487,7 @@ class AgilePilotNode:
 
 
     def start_callback(self, data):
-        print("Start publishing commands!")
+        rospy.loginfo("Start publishing commands!")
         self.publish_commands = True
         self.command.pos_xy_nav_mode = 3
         self.command.target_pos_x = self.state.pos[0]+self.translation_position[0]
