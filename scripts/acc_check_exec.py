@@ -147,7 +147,7 @@ class PosTest(PosSpeedUp):
         smach.State.__init__(self, outcomes=['PosMoveToInit'])
         self.acc_check_node = acc_check_node
 
-   def execute(self, userdata):
+    def execute(self, userdata):
         rospy.loginfo('Executing state PosTest')
         while self.acc_check_node.state is None:
             rospy.sleep(0.01)
@@ -180,8 +180,8 @@ class PosMoveToInit(PosSpeedUp):
             rospy.loginfo("vel: %f", self.acc_check_node.state.vel[0])
             rospy.loginfo("vel_threshold: %f", self.acc_check_node.vel_threshold)
             rospy.loginfo("self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold: %d", self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold)
-        self.acc_check_node.geo_condition == GeoCondition.speed_up:
-        self.acc_check_node.pos_neg = PosNeg.neg
+        if self.acc_check_node.geo_condition == GeoCondition.speed_up:
+            self.acc_check_node.pos_neg = PosNeg.neg
         return 'NegSpeedup'
 
     def pos_set(self):
@@ -214,7 +214,7 @@ class NegTest(PosTest):
         smach.State.__init__(self, outcomes=['NegMoveToInit'])
         self.acc_check_node = acc_check_node
 
-   def execute(self, userdata):
+    def execute(self, userdata):
         rospy.loginfo('Executing state NegTest')
         while self.acc_check_node.state is None:
             rospy.sleep(0.01)
@@ -234,7 +234,7 @@ class NegTest(PosTest):
 
 class NegMoveToInit(PosMoveToInit):
     def __init__(self, acc_check_node):
-        smach.State.__init__(self, outcomes=['PospeedUp'])
+        smach.State.__init__(self, outcomes=['PosSpeedUp'])
         self.acc_check_node = acc_check_node
 
     def execute(self, userdata):
@@ -247,8 +247,8 @@ class NegMoveToInit(PosMoveToInit):
             rospy.loginfo("vel: %f", self.acc_check_node.state.vel[0])
             rospy.loginfo("vel_threshold: %f", self.acc_check_node.vel_threshold)
             rospy.loginfo("self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold: %d", self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold)
-        self.acc_check_node.geo_condition == GeoCondition.speed_up:
-        self.acc_check_node.pos_neg = PosNeg.neg
+        if self.acc_check_node.geo_condition == GeoCondition.speed_up:
+            self.acc_check_node.pos_neg = PosNeg.pos
         return 'PosSpeedup'
 
     def pos_set(self):
