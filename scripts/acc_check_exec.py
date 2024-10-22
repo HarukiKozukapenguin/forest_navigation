@@ -92,11 +92,13 @@ class AccCheck:
     def state_callback(self, state_data):
         self.command.header.stamp = state_data.header.stamp
         self.state = AgileQuadState(state_data, self.translation_position)
-        if self.pos_neg == PosNeg.pos:
-            x_pos = self.state.pos[0]
-        if self.pos_neg == PosNeg.neg:
-            x_pos = self.x_range - self.state.pos[0]
+        # if self.pos_neg == PosNeg.pos:
+        x_pos = self.state.pos[0]
+        # if self.pos_neg == PosNeg.neg:
+        #     x_pos = self.x_range - self.state.pos[0]
         vel_x = self.state.vel[0]
+
+        print(x_pos)
 
         if x_pos < self.speed_up_distance: 
             self.geo_condition = GeoCondition.speed_up
@@ -166,7 +168,7 @@ class PosTest(PosSpeedUp):
 
 class PosMoveToInit(PosSpeedUp):
     def __init__(self, acc_check_node):
-        smach.State.__init__(self, outcomes=['NegSpeedUp'])
+        smach.State.__init__(self, outcomes=['PosSpeedUp'])
         self.acc_check_node = acc_check_node
 
     def execute(self, userdata):
@@ -182,10 +184,10 @@ class PosMoveToInit(PosSpeedUp):
         if self.acc_check_node.geo_condition == GeoCondition.speed_up:
             self.acc_check_node.pos_neg = PosNeg.neg
             self.geo_condition = GeoCondition.speed_up
-        return 'NegSpeedUp'
+        return 'PosSpeedUp'
 
     def pos_set(self):
-        self.acc_check_node.command.target_pos_x = self.acc_check_node.x_range + self.acc_check_node.translation_position[0]
+        self.acc_check_node.command.target_pos_x = self.acc_check_node.translation_position[0]
         self.acc_check_node.command.target_vel_x = 0.0
         self.acc_check_node.command.target_acc_x = 0.0
 
@@ -265,13 +267,13 @@ if __name__ == '__main__':
         smach.StateMachine.add('POSTEST', PosTest(acc_check_node),
                                transitions={'PosMoveToInit':'POSMOVETOINIT'})
         smach.StateMachine.add('POSMOVETOINIT', PosMoveToInit(acc_check_node),
-                               transitions={'NegSpeedUp':'NEGSPEEDUP'})
-        smach.StateMachine.add('NEGSPEEDUP', NegSpeedUp(acc_check_node),
-                               transitions={'NegTest':'NEGTEST'})
-        smach.StateMachine.add('NEGTEST', NegTest(acc_check_node),
-                               transitions={'NegMoveToInit':'NEGMOVETOINIT'})
-        smach.StateMachine.add('NEGMOVETOINIT', NegMoveToInit(acc_check_node),
                                transitions={'PosSpeedUp':'POSSPEEDUP'})
+        # smach.StateMachine.add('NEGSPEEDUP', NegSpeedUp(acc_check_node),
+        #                        transitions={'NegTest':'NEGTEST'})
+        # smach.StateMachine.add('NEGTEST', NegTest(acc_check_node),
+        #                        transitions={'NegMoveToInit':'NEGMOVETOINIT'})
+        # smach.StateMachine.add('NEGMOVETOINIT', NegMoveToInit(acc_check_node),
+        #                        transitions={'PosSpeedUp':'POSSPEEDUP'})
 
     sis = smach_ros.IntrospectionServer('acc_check_server', sm, '/ACC_CHECK')
     sis.start()
