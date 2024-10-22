@@ -54,7 +54,7 @@ class AccCheck:
         self.initialize_variable()
     
     def set_variable(self):
-        self.exec_max_gain = 0.4
+        self.exec_max_gain = 0.5
         self.speed_up_distance = 0.5
         self.stop_distance = 0.5
         self.x_range = 2.0
@@ -74,7 +74,7 @@ class AccCheck:
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
-        self.command.pos_xy_nav_mode = 4
+        self.command.pos_xy_nav_mode = 1
         self.command.pos_z_nav_mode = 2
         self.command.control_frame = 0
         self.command.target = 1 #COG
@@ -133,6 +133,7 @@ class PosSpeedUp(smach.State):
             return 'exit'
 
     def vel_set(self):
+        self.acc_check_node.command.pos_xy_nav_mode = 1
         self.acc_check_node.command.target_pos_x = self.acc_check_node.state.pos[0]+self.acc_check_node.translation_position[0]
         self.acc_check_node.command.target_vel_x = self.acc_check_node.vel_threshold
         self.acc_check_node.command.target_acc_x = 0.0
@@ -159,6 +160,7 @@ class PosTest(PosSpeedUp):
         return 'PosMoveToInit'
 
     def act_set(self):
+        self.acc_check_node.command.pos_xy_nav_mode = 3
         self.acc_check_node.command.target_pos_x = self.acc_check_node.state.pos[0]+self.acc_check_node.translation_position[0]
         self.acc_check_node.command.target_vel_x = self.acc_check_node.state.vel[0]
         action = np.array([self.acc_check_node.exec_max_gain, 0.0])
@@ -185,6 +187,7 @@ class PosMoveToInit(PosSpeedUp):
         return 'PosSpeedUp'
 
     def pos_set(self):
+        self.acc_check_node.command.pos_xy_nav_mode = 2
         self.acc_check_node.command.target_pos_x = self.acc_check_node.translation_position[0]
         self.acc_check_node.command.target_vel_x = 0.0
         self.acc_check_node.command.target_acc_x = 0.0
@@ -205,6 +208,7 @@ class NegSpeedUp(PosSpeedUp):
         return 'NegTest'
 
     def vel_set(self):
+        self.acc_check_node.command.pos_xy_nav_mode = 1
         self.acc_check_node.command.target_pos_x = self.acc_check_node.state.pos[0]+self.acc_check_node.translation_position[0]
         self.acc_check_node.command.target_vel_x = -self.acc_check_node.vel_threshold
         self.acc_check_node.command.target_vel_x = 0.0
@@ -226,6 +230,7 @@ class NegTest(PosTest):
         return 'NegMoveToInit'
 
     def act_set(self):
+        self.acc_check_node.command.pos_xy_nav_mode = 3
         self.acc_check_node.command.target_pos_x = self.acc_check_node.state.pos[0]+self.acc_check_node.translation_position[0]
         self.acc_check_node.command.target_vel_x = self.acc_check_node.state.vel[0]
         action = np.array([-self.acc_check_node.exec_max_gain, 0.0])
@@ -252,6 +257,7 @@ class NegMoveToInit(PosMoveToInit):
         return 'PosSpeedUp'
 
     def pos_set(self):
+        self.acc_check_node.command.pos_xy_nav_mode = 2
         self.acc_check_node.command.target_pos_x = self.acc_check_node.translation_position[0]
         self.acc_check_node.command.target_vel_x = 0.0
         self.acc_check_node.command.target_acc_x = 0.0
