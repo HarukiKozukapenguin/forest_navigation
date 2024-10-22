@@ -74,7 +74,7 @@ class AccCheck:
     def start_callback(self, data):
         print("Start publishing commands!")
         self.publish_commands = True
-        self.command.pos_xy_nav_mode = 7
+        self.command.pos_xy_nav_mode = 4
         self.command.pos_z_nav_mode = 2
         self.command.control_frame = 0
         self.command.target = 1 #COG
@@ -97,8 +97,6 @@ class AccCheck:
         # if self.pos_neg == PosNeg.neg:
         #     x_pos = self.x_range - self.state.pos[0]
         vel_x = self.state.vel[0]
-
-        print(x_pos)
 
         if x_pos < self.speed_up_distance: 
             self.geo_condition = GeoCondition.speed_up
