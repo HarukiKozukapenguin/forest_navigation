@@ -10,6 +10,7 @@ from aerial_robot_msgs.msg import FlightNav
 from scipy.spatial.transform import Rotation as R 
 import smach
 import smach_ros
+import time
 
 class AgileQuadState:
     def __init__(self, quad_state,transition):
@@ -170,20 +171,32 @@ class PosMoveToInit(PosSpeedUp):
     def __init__(self, acc_check_node):
         smach.State.__init__(self, outcomes=['IfHover'])
         self.acc_check_node = acc_check_node
+        self.initial_time = None
 
     def execute(self, userdata):
         rospy.loginfo('Executing state PosMoveToInit')
         while self.acc_check_node.state is None:
             rospy.sleep(0.01)
-        while acc_check_node.geo_condition == GeoCondition.move_to_test and acc_check_node.pos_start < abs(self.acc_check_node.state.pos[0] - self.acc_check_node.x_range):
-            self.pos_set()
+        self.pos_set()
+        while True:
+            x_pos = self.acc_check_node.state.pos[0]
+            if abs(x_pos) < 0.1 :
+                if self.initial_time is None:
+                    self.initial_time = time.time()
+                    rospy.loginfo("Entered x_pos 0.1 range")
+                else:
+                    time_elapsed = time.time() - self.initial_time
+                    # rospy.loginfo(f"Within x_pos ±0.1m for {time_elapsed:.2f} seconds")
+                    if time_elapsed >= 3.0:
+                        rospy.loginfo("3 seconds at initial position, transitioning to SpeedUP state")
+                        self.acc_check_node.geo_condition = GeoCondition.speed_up
+                        break
+            else:
+                if self.initial_time is not None:
+                    rospy.loginfo("Exited x_pos 0.1 range, resetting timer")
+                self.initial_time = None
+
             rospy.sleep(0.01)
-            # rospy.loginfo("vel: %f", self.acc_check_node.state.vel[0])
-            # rospy.loginfo("vel_threshold: %f", self.acc_check_node.vel_threshold)
-            # rospy.loginfo("self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold: %d", self.acc_check_node.state.vel[0] < acc_check_node.vel_threshold)
-        if self.acc_check_node.geo_condition == GeoCondition.speed_up:
-            self.acc_check_node.pos_neg = PosNeg.neg
-            self.geo_condition = GeoCondition.speed_up
         return 'IfHover'
 
     def pos_set(self):
