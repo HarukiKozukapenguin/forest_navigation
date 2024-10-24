@@ -110,7 +110,7 @@ class AccCheck:
 
 class PosSpeedUp(smach.State):
     def __init__(self, acc_check_node):
-        smach.State.__init__(self, outcomes=['PosTest','exit'])
+        smach.State.__init__(self, outcomes=['UniformVel','exit'])
         self.counter = 0
         self.inverval_num = rospy.get_param("~inverval_num")
         self.acc_check_node = acc_check_node
@@ -125,7 +125,7 @@ class PosSpeedUp(smach.State):
             while acc_check_node.geo_condition == GeoCondition.speed_up:
                 self.vel_set()
                 rospy.sleep(0.01)
-            return 'PosTest'
+            return 'UniformVel'
         else:
             self.finish()
             while True:
@@ -145,7 +145,7 @@ class PosSpeedUp(smach.State):
 
 class PosTest(PosSpeedUp):
     def __init__(self, acc_check_node):
-        smach.State.__init__(self, outcomes=['PosMoveToInit'])
+        smach.State.__init__(self, outcomes=['TestDone'])
         self.acc_check_node = acc_check_node
 
     def execute(self, userdata):
@@ -157,7 +157,7 @@ class PosTest(PosSpeedUp):
             rospy.sleep(0.01)
             # rospy.loginfo("vel: %f", self.acc_check_node.state.vel[0])
             # rospy.loginfo("vel_threshold: %f", self.acc_check_node.vel_threshold)
-        return 'PosMoveToInit'
+        return 'TestDone'
 
     def act_set(self):
         self.acc_check_node.command.pos_xy_nav_mode = 3
@@ -168,7 +168,7 @@ class PosTest(PosSpeedUp):
 
 class PosMoveToInit(PosSpeedUp):
     def __init__(self, acc_check_node):
-        smach.State.__init__(self, outcomes=['PosSpeedUp'])
+        smach.State.__init__(self, outcomes=['IfHover'])
         self.acc_check_node = acc_check_node
 
     def execute(self, userdata):
@@ -184,7 +184,7 @@ class PosMoveToInit(PosSpeedUp):
         if self.acc_check_node.geo_condition == GeoCondition.speed_up:
             self.acc_check_node.pos_neg = PosNeg.neg
             self.geo_condition = GeoCondition.speed_up
-        return 'PosSpeedUp'
+        return 'IfHover'
 
     def pos_set(self):
         self.acc_check_node.command.pos_xy_nav_mode = 2
@@ -264,14 +264,14 @@ class NegMoveToInit(PosMoveToInit):
 
 if __name__ == '__main__':
     acc_check_node = AccCheck()
-    sm = smach.StateMachine(outcomes=['exit'])
+    sm = smach.StateMachine(outcomes=['succeeded'])
     with sm:
         smach.StateMachine.add('POSSPEEDUP', PosSpeedUp(acc_check_node),
-                               transitions={'PosTest':'POSTEST'})
+                               transitions={'UniformVel':'POSTEST', 'exit':'succeeded'})
         smach.StateMachine.add('POSTEST', PosTest(acc_check_node),
-                               transitions={'PosMoveToInit':'POSMOVETOINIT'})
+                               transitions={'TestDone':'POSMOVETOINIT'})
         smach.StateMachine.add('POSMOVETOINIT', PosMoveToInit(acc_check_node),
-                               transitions={'PosSpeedUp':'POSSPEEDUP'})
+                               transitions={'IfHover':'POSSPEEDUP'})
         # smach.StateMachine.add('NEGSPEEDUP', NegSpeedUp(acc_check_node),
         #                        transitions={'NegTest':'NEGTEST'})
         # smach.StateMachine.add('NEGTEST', NegTest(acc_check_node),
