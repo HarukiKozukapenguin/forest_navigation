@@ -164,7 +164,7 @@ class PosTest(PosSpeedUp):
         self.acc_check_node.command.pos_xy_nav_mode = 3
         self.acc_check_node.command.target_pos_x = self.acc_check_node.state.pos[0]+self.acc_check_node.translation_position[0]
         self.acc_check_node.command.target_vel_x = self.acc_check_node.state.vel[0]
-        action = np.array([self.acc_check_node.exec_max_gain, 0.0])
+        action = np.array([-self.acc_check_node.exec_max_gain, 0.0])
         self.acc_check_node.command.target_acc_x = action[0]
 
 class PosMoveToInit(PosSpeedUp):
