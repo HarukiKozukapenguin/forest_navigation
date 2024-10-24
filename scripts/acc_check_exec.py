@@ -55,11 +55,11 @@ class AccCheck:
         self.initialize_variable()
     
     def set_variable(self):
-        self.exec_max_gain = 0.5
-        self.speed_up_distance = 0.5
+        self.exec_max_gain = 0.6
+        self.speed_up_distance = 0.8
         self.stop_distance = 0.5
         self.x_range = 2.0
-        self.vel_threshold = 0.6
+        self.vel_threshold = 0.5
         self.vel_stopped = 0.1
         self.pos_start = 0.1
     
