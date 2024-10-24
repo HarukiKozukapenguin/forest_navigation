@@ -128,9 +128,9 @@ class PosSpeedUp(smach.State):
             return 'UniformVel'
         else:
             self.finish()
-            while True:
-                rospy.sleep(1)
             return 'exit'
+            # while True:
+            #     rospy.sleep(1)
 
     def vel_set(self):
         self.acc_check_node.command.pos_xy_nav_mode = 1
