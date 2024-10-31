@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-
+import threading
 
 from aerial_robot_msgs.msg import ObstacleArray, FlightNav
 from nav_msgs.msg import Odometry
@@ -207,6 +207,16 @@ class AgilePilotNode:
         if not self.get_from_hokuyo:
             self.check_obs_num_in_range_sub = rospy.Subscriber("/" + quad_name + "/visualization_marker", MarkerArray,
                                                         self.min_obs_in_range_callback, queue_size=1, tcp_nodelay=True)
+        # set publish rate of nav to 40
+        self.publish_rate = rospy.Rate(40)
+        self.publish_thread = threading.Thread(target=self.publish_hokuyo_time_loop)
+        self.publish_thread.start()
+
+    def publish_hokuyo_time_loop(self):
+        while not rospy.is_shutdown():
+            if hasattr(self, 'latest_nav_msg'):
+                self.linvel_pub.publish(self.latest_nav_msg)
+            self.publish_rate.sleep()
 
     # calc listed obstacle num
     def min_obs_in_range_callback(self, markers_msg):
@@ -317,7 +327,7 @@ class AgilePilotNode:
             # print("x_state: ",self.state.pos[0])
             # print("x_direction: ",vel_msg.target_pos_x-(self.state.pos[0]+self.translation_position[0]))
             # print("y_direction: ",vel_msg.target_pos_y-(self.state.pos[1]+self.translation_position[1]))
-            self.linvel_pub.publish(vel_msg)
+            self.latest_nav_msg = vel_msg
             if self.get_from_hokuyo:
                 self.hokuyo_time_pub.publish(hokuyo_time_msg)
 
