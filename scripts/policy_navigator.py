@@ -221,11 +221,12 @@ class AgilePilotNode:
         else:
             if np.linalg.norm(self.previous_quad_pos - self.quad_pos) < self.stuck_threshold \
                and self.publish_commands and self.enough_obstacles:
-                self.publish_commands = False
                 rospy.loginfo("stucked")
+                self.stop()
            # else:
                 # rospy.loginfo("not stucked")
-        self.previous_quad_pos = self.quad_pos
+        if self.publish_commands:
+            self.previous_quad_pos = self.quad_pos
         rospy.loginfo("self.publish_commands %d", self.publish_commands)
 
     # calc listed obstacle num
@@ -547,6 +548,25 @@ class AgilePilotNode:
         self.command.target_yaw = euler[2]
         self.linvel_pub.publish(self.command)
         self.publish_commands = False
+
+    def stop(self):
+        print("Stay current position!")
+        self.command.pos_xy_nav_mode = 4
+        self.command.target_pos_x = self.state.pos[0]+self.translation_position[0]
+        self.command.target_pos_y = self.state.pos[1]+self.translation_position[1]
+        self.command.target_pos_z = self.state.pos[2]
+
+        self.command.target_vel_x = 0
+        self.command.target_vel_y = 0
+        self.command.target_vel_z = 0
+
+        # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
+        r = R.from_quat(self.state.att)
+        euler = r.as_euler('xyz')
+        self.command.target_yaw = euler[2]
+        self.linvel_pub.publish(self.command)
+        self.publish_commands = False
+
 
 
     def normalize_obs(self, obs, obs_mean, obs_var):
