@@ -155,7 +155,7 @@ class AgilePilotNode:
         # stuck evaluation
         self.stuck_check_interval = 5.0
         self.stuck_threshold = 0.2
-        self.is_stack = False
+        # self.is_stack = False
 
         self.n_act = np.zeros(2)
         self.obs_data = None
@@ -221,12 +221,12 @@ class AgilePilotNode:
         else:
             if np.linalg.norm(self.previous_quad_pos - self.quad_pos) < self.stuck_threshold \
                and self.publish_commands and self.enough_obstacles:
-                self.is_stack = True
-                # rospy.loginfo("stucked")
-            else:
-                self.is_stack = False
+                self.publish_commands = False
+                rospy.loginfo("stucked")
+           # else:
                 # rospy.loginfo("not stucked")
         self.previous_quad_pos = self.quad_pos
+        rospy.loginfo("self.publish_commands %d", self.publish_commands)
 
     # calc listed obstacle num
     def min_obs_in_range_callback(self, markers_msg):
