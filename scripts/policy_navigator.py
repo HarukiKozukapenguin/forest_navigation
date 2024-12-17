@@ -89,6 +89,7 @@ class AgilePilotNode:
         # init setting param setting to avoid error
         self.no_yaw_poll_y = np.array([0,1,0],dtype="float32")
         self.quad_pos = np.array([0,0,0],dtype="float32")
+        self.previous_quad_pos = None
         self.yaw_rad = 0
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.real_area = rospy.get_param("~real_area")
@@ -151,6 +152,11 @@ class AgilePilotNode:
         # self.time_constant = rospy.get_param("~time_constant") #0.366
         # self.time_constant = 0.366
 
+        # stuck evaluation
+        self.stuck_check_interval = 5.0
+        self.stuck_threshold = 0.2
+        self.is_stack = False
+
         self.n_act = np.zeros(2)
         self.obs_data = None
 
@@ -207,6 +213,20 @@ class AgilePilotNode:
         if not self.get_from_hokuyo:
             self.check_obs_num_in_range_sub = rospy.Subscriber("/" + quad_name + "/visualization_marker", MarkerArray,
                                                         self.min_obs_in_range_callback, queue_size=1, tcp_nodelay=True)
+        rospy.Timer(rospy.Duration(self.stuck_check_interval), self.stuck_check)
+
+    def stuck_check(self, event):
+        if self.previous_quad_pos is None or self.quad_pos is None:
+            rospy.loginfo("no new or old data")
+        else:
+            if np.linalg.norm(self.previous_quad_pos - self.quad_pos) < self.stuck_threshold \
+               and self.publish_commands and self.enough_obstacles:
+                self.is_stack = True
+                # rospy.loginfo("stucked")
+            else:
+                self.is_stack = False
+                # rospy.loginfo("not stucked")
+        self.previous_quad_pos = self.quad_pos
 
     # calc listed obstacle num
     def min_obs_in_range_callback(self, markers_msg):
