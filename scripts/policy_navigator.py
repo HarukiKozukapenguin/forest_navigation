@@ -23,6 +23,7 @@ from stable_baselines3.common.utils import get_device
 from forest_navigation.middle_layer_network import MiddleLayerActorCriticPolicy
 # import csv
 import sys
+import math, time
 
 
 class AgileQuadState:
@@ -73,6 +74,54 @@ class Buffer:
         self.past_delay = time_delay
 
         return out
+
+class WaypointMonitor:
+    def __init__(self):
+        self.pos = [0.0, 0.0, 0.0]  # Current position [x, y, z]
+        self.waypoint = [1.0, 1.0, 1.0]  # Target waypoint [x, y, z]
+        self.threshold_distance = 0.1  # Distance threshold for proximity
+        self.required_time = 3.0  # Required time to stay at waypoint (seconds)
+        self.start_time = None  # Start time for staying at the waypoint
+        self.publish_commands = False  # Flag to enable command publishing
+
+    def update_position(self, new_pos):
+        """Update the current position and check waypoint proximity."""
+        self.pos = new_pos
+        self.check_proximity()
+
+    def update_waypoint(self, new_waypoint):
+        """Update the target waypoint."""
+        self.waypoint = new_waypoint
+
+    def check_proximity(self):
+        """Check if the current position is near the waypoint for a specified duration."""
+        distance = self.calculate_distance(self.pos, self.waypoint)
+
+        if distance <= self.threshold_distance:
+            # If the position is within the threshold distance
+            if self.start_time is None:
+                self.start_time = time.time()  # Record the start time of staying
+            elif time.time() - self.start_time >= self.required_time:
+                # Set the flag to True if the required time is met
+                self.publish_commands = True
+        else:
+            # Reset the timer if the position is not near the waypoint
+            self.start_time = None
+            self.publish_commands = False
+
+    @staticmethod
+    def calculate_distance(pos1, pos2):
+        """Calculate Euclidean distance between two points."""
+        return math.sqrt(sum((p1 - p2) ** 2 for p1, p2 in zip(pos1, pos2)))
+
+    def run(self):
+        """Main loop for ROS."""
+        rate = rospy.Rate(10)  # Loop rate at 10Hz
+        while not rospy.is_shutdown():
+            rospy.loginfo(f"Current Position: {self.pos}")
+            rospy.loginfo(f"Target Waypoint: {self.waypoint}")
+            rospy.loginfo(f"Publish Commands: {self.publish_commands}")
+            rate.sleep()
 
 class AgilePilotNode:
     def __init__(self):
@@ -155,7 +204,8 @@ class AgilePilotNode:
         # stuck evaluation
         self.stuck_check_interval = 5.0
         self.stuck_threshold = 0.2
-        # self.is_stack = False
+        self.waypoint_monitor = WaypointMonitor()
+        self.move_to_waypoint = False
 
         self.n_act = np.zeros(2)
         self.obs_data = None
@@ -220,12 +270,14 @@ class AgilePilotNode:
             rospy.loginfo("no new or old data")
         else:
             if np.linalg.norm(self.previous_quad_pos - self.quad_pos) < self.stuck_threshold \
-               and self.publish_commands and self.enough_obstacles:
+               and self.publish_commands and self.enough_obstacles and not self.goal:
                 rospy.loginfo("stucked")
                 self.stop()
                 self.calc_waypoint()
                 print("self.waypoint", self.waypoint)
                 self.move_to_in_shift_coordinate(self.waypoint)
+                self.waypoint_monitor.update_waypoint(self.waypoint)
+                self.move_to_waypoint = True
            # else:
                 # rospy.loginfo("not stucked")
         if self.publish_commands:
@@ -319,6 +371,11 @@ class AgilePilotNode:
 
         self.no_yaw_poll_y = no_yaw_rotation.as_matrix()[1,:]
         self.quad_pos = self.state.pos
+        self.waypoint_monitor.update_position(self.quad_pos)
+        if not self.publish_commands and self.move_to_waypoint:
+            self.publish_commands = self.waypoint_monitor.publish_commands
+            if self.waypoint_monitor.publish_commands:
+                self.move_to_waypoint = False
 
         if self.obs_data is None:
             return

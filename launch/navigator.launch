@@ -11,7 +11,7 @@
   <arg name="max_gain" default="3.0"/>
   <arg name="delay" default="False" />
   <arg name="real_area" default="True" />
-  <arg name="policy" default="RecurrentPPO_287" />
+  <arg name="policy" default="RecurrentPPO_289" />
   <arg name="min_start_obstacles" default="1" />
   <arg name="body_move_area_y" default="0.10" />
   <!-- <arg name="real_machine" default="True" /> -->
