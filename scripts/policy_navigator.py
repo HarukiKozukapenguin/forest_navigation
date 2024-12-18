@@ -225,7 +225,7 @@ class AgilePilotNode:
                 self.stop()
                 self.calc_waypoint()
                 print("self.waypoint", self.waypoint)
-                # self.move_to_in_shift_coordinate(self.waypoint)
+                self.move_to_in_shift_coordinate(self.waypoint)
            # else:
                 # rospy.loginfo("not stucked")
         if self.publish_commands:
@@ -243,7 +243,20 @@ class AgilePilotNode:
                       direction_range*np.sin(direction_theta),
                       0])/2 # 3D
 
-    # def move_to_in_shift_coordinate(self, point): #point: 3D
+    def move_to_in_shift_coordinate(self, point): #point: 3D
+        self.command.pos_xy_nav_mode = 4
+        self.command.target_pos_x = point[0] + self.translation_position[0]
+        self.command.target_pos_y = point[1] + self.translation_position[1]
+        self.command.target_pos_z = point[2]
+
+        self.command.target_vel_x = 0
+        self.command.target_vel_y = 0
+        self.command.target_vel_z = 0
+
+        # set yaw cmd from state based (in learning, controller is set by diff of yaw angle)
+        self.command.target_yaw = 0.0
+        self.linvel_pub.publish(self.command)
+
 
     def find_max_min_of_triplet_indices(self, arr, triplet_size=3):
         if triplet_size % 2 == 0:
