@@ -223,12 +223,22 @@ class AgilePilotNode:
                and self.publish_commands and self.enough_obstacles:
                 rospy.loginfo("stucked")
                 self.stop()
+                self.calc_waypoint()
            # else:
                 # rospy.loginfo("not stucked")
         if self.publish_commands:
             self.previous_quad_pos = self.quad_pos
         rospy.loginfo("self.publish_commands %d", self.publish_commands)
 
+    def cal_waypoint():
+        # calc max point of obstacle
+        min_obstacle_direction = np.argmax(self.obs_data)
+        direction_range = self.obs_data[min_obstacle_direction]
+        rad_list = self.full_range_rad_list_maker(self.theta_list)
+        direction_theta = rad_list[min_obstacle_direction]
+        self.waypoint = self.quad_pos + \
+            np.array([direction_range*np.cos(direction_theta)\
+                      direction_range*np.sin(direction_theta), 0])/2 # 3D
     # calc listed obstacle num
     def min_obs_in_range_callback(self, markers_msg):
         # self.obstacle_pos_list is aimed for debug
