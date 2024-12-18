@@ -224,21 +224,50 @@ class AgilePilotNode:
                 rospy.loginfo("stucked")
                 self.stop()
                 self.calc_waypoint()
+                print("self.waypoint", self.waypoint)
+                # self.move_to_in_shift_coordinate(self.waypoint)
            # else:
                 # rospy.loginfo("not stucked")
         if self.publish_commands:
             self.previous_quad_pos = self.quad_pos
         rospy.loginfo("self.publish_commands %d", self.publish_commands)
 
-    def cal_waypoint():
+    def calc_waypoint(self):
         # calc max point of obstacle
-        min_obstacle_direction = np.argmax(self.obs_data)
-        direction_range = self.obs_data[min_obstacle_direction]
+        min_obstacle_direction = self.find_max_min_of_triplet_indices(self.obs_data.boxel, 3)
+        direction_range = self.obs_data.boxel[min_obstacle_direction]*self.max_detection_range
         rad_list = self.full_range_rad_list_maker(self.theta_list)
         direction_theta = rad_list[min_obstacle_direction]
         self.waypoint = self.quad_pos + \
-            np.array([direction_range*np.cos(direction_theta)\
-                      direction_range*np.sin(direction_theta), 0])/2 # 3D
+            np.array([direction_range*np.cos(direction_theta),
+                      direction_range*np.sin(direction_theta),
+                      0])/2 # 3D
+
+    # def move_to_in_shift_coordinate(self, point): #point: 3D
+
+    def find_max_min_of_triplet_indices(self, arr, triplet_size=3):
+        if triplet_size % 2 == 0:
+            raise ValueError("The triplet size must be an odd number.")
+
+        if len(arr) < triplet_size:
+            raise ValueError("The array must have at least as many elements as the triplet size.")
+
+        half_window = triplet_size // 2
+        max_min_value = float('-inf')
+        best_index = -1
+
+        for i in range(half_window, len(arr) - half_window):
+            # Take the triplet of size `triplet_size` centered at `i`
+            triplet = arr[i - half_window:i + half_window + 1]
+            min_value = np.min(triplet)
+
+            # Update if this triplet has a larger minimum value
+            if min_value > max_min_value:
+                max_min_value = min_value
+                best_index = i
+
+        return best_index
+
     # calc listed obstacle num
     def min_obs_in_range_callback(self, markers_msg):
         # self.obstacle_pos_list is aimed for debug
