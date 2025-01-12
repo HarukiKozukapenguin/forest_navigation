@@ -355,7 +355,7 @@ class AgilePilotNode:
         # print("state.pos[0]: ", state.pos[0])
         # print("self.world_box[1]-1.2: ", self.world_box[1]-1.2)
         if not self.goal:
-            self.goal = self.world_box[1]-1.2<state.pos[0]
+            self.goal = self.world_box[1]-0.7<state.pos[0]
         inside_range = True
         for i in range (3):
             inside_range &= self.world_box[i*2]<state.pos[i]<self.world_box[i*2+1]
@@ -366,7 +366,7 @@ class AgilePilotNode:
                 rospy.logwarn_throttle(1.0, "Out of range!")
                 self.force_landing_pub.publish(Empty())
             self.command.pos_xy_nav_mode = 4
-            self.command.target_pos_x = self.world_box[1]+self.translation_position[0]-1.2
+            self.command.target_pos_x = self.world_box[1]+self.translation_position[0]-0.7
             self.command.target_pos_y = -0.50-0.25
             self.command.target_pos_z = state.pos[2]
 
