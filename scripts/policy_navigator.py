@@ -367,7 +367,7 @@ class AgilePilotNode:
                 self.force_landing_pub.publish(Empty())
             self.command.pos_xy_nav_mode = 4
             self.command.target_pos_x = self.world_box[1]+self.translation_position[0]-1.2
-            self.command.target_pos_y = -0.50-0.25
+            self.command.target_pos_y = 0.0 + self.translation_position[1]
             self.command.target_pos_z = state.pos[2]
 
             self.command.target_vel_x = 0
