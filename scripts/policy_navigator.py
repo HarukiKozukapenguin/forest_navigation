@@ -93,9 +93,9 @@ class AgilePilotNode:
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.real_area = rospy.get_param("~real_area")
         if self.real_area:
-            self.world_box = np.array([-0.3, 8.3 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
+            self.world_box = np.array([-0.8, 8.3 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         else:
-            self.world_box = np.array([-0.3, 60 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
+            self.world_box = np.array([-0.8, 60 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # should change when changing position
         x = rospy.get_param("~shift_x")
         y = rospy.get_param("~shift_y")
@@ -116,7 +116,7 @@ class AgilePilotNode:
         self.is_delay = rospy.get_param("~delay")
         if self.is_delay:
             self.act_buffer = Buffer(0.020, 0.010, 2)
-            self.obs_buffer = Buffer(0.020, 0.010, 49)
+            self.obs_buffer = Buffer(0.020, 0.010, 48)
 
         quad_name = rospy.get_param("~robot_ns")
 
@@ -383,7 +383,7 @@ class AgilePilotNode:
         wall_vec = np.array([(self.wall_pos_y - self.body_r) - state.pos[1], (self.wall_pos_y - self.body_r) + state.pos[1]])
 
         obs = np.concatenate([
-            np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]), self.n_act.reshape((2)), state.pos[0:2],
+            np.array([self.body_r]), np.array([self.time_constant]), np.array([self.exec_max_gain]), self.n_act.reshape((2)), state.pos[1:2],
             np.array([state.vel[0]*self.vel_conversion]), np.array([state.vel[1]]), body_tilt,
             np.array([state.omega[0]]) + self.random_number(self.omega_noise), np.array([state.omega[1]]) + self.random_number(self.omega_noise),
             np.where(wall_vec < self.beta, a*wall_vec+b, -np.log(wall_vec)),
