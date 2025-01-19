@@ -93,7 +93,7 @@ class AgilePilotNode:
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
         self.real_area = rospy.get_param("~real_area")
         if self.real_area:
-            self.world_box = np.array([-0.3, 4.2 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
+            self.world_box = np.array([-0.3, 8.3 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         else:
             self.world_box = np.array([-0.3, 60 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # should change when changing position
