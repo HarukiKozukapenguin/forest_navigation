@@ -12,7 +12,7 @@
   <arg name="delay" default="False" />
   <arg name="real_area" default="True" />
   <arg name="policy" default="RecurrentPPO_287" />
-  <arg name="min_start_obstacles" default="1" />
+  <arg name="min_start_obstacles" default="0" />
   <arg name="body_move_area_y" default="0.10" />
   <!-- <arg name="real_machine" default="True" /> -->
   <!-- <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" launch-prefix="python -m pdb"> -->
