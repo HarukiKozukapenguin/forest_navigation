@@ -5,5 +5,5 @@ torch==1.11+cu113
 # torchvision
 # torchaudio
 stable-baselines3>=1.6.1a2, <1.6.2
-scipy==1.4.1
+scipy==1.5.0
 -e git+https://github.com/HarukiKozukapenguin/stable-baselines3-contrib.git@middle_layer/important_element#egg=sb3_contrib
