@@ -469,6 +469,7 @@ class AgilePilotNode:
     def load_rl_policy(self, policy_path):
         # # -- load saved varaiables --
         device = get_device("auto")
+        rospy.loginfo("device type is %s!", device)
         policy_dir = policy_path  + "/policy.pth"
         # self.policy_load_setting(policy_dir, device)
 
