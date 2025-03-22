@@ -91,14 +91,14 @@ class AgilePilotNode:
         self.quad_pos = np.array([0,0,0],dtype="float32")
         self.yaw_rad = 0
         self.goal_lin_vel = np.array([5,0,0],dtype="float32")
-        self.real_area = rospy.get_param("~real_area")
+        self.real_area = rospy.get_param("tree/real_area")
         if self.real_area:
             self.world_box = np.array([-0.3, 4.2 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         else:
             self.world_box = np.array([-0.3, 60 ,-1.5, 1.5, 0.2, 2.0],dtype="float32")
         # should change when changing position
-        x = rospy.get_param("~shift_x")
-        y = rospy.get_param("~shift_y")
+        x = rospy.get_param("navigation/shift_x")
+        y = rospy.get_param("navigation/shift_y")
         self.fixed_flight: bool = rospy.get_param("~fixed_flight")
         self.fixed_flight_pos = 4.0
         self.translation_position = np.array([x, y],dtype="float32")
@@ -113,7 +113,7 @@ class AgilePilotNode:
         self.goal = False
         # should change depending on world flame's origin
 
-        self.is_delay = rospy.get_param("~delay")
+        self.is_delay = rospy.get_param("navigation/delay")
         if self.is_delay:
             self.act_buffer = Buffer(0.020, 0.010, 2)
             self.obs_buffer = Buffer(0.020, 0.010, 49)
@@ -126,14 +126,14 @@ class AgilePilotNode:
         self.command.pos_z_nav_mode = 0
 
         self.lstm_states = None
-        self.body_r = rospy.get_param("~body_r")  #radius of quadrotor(0.25~0.5)
+        self.body_r = rospy.get_param("navigation/body_r")  #radius of quadrotor(0.25~0.5)
         self.collision_distance = 0.10
         self.dist_backup = 0.10
         self.landing_dist_threshold = 0.05
         self.force_landing_dist_threshold = 0.40
         self.beta = 0.002 # min distance for linearization
         learning_max_gain = 10.0
-        self.exec_max_gain = rospy.get_param("~max_gain")
+        self.exec_max_gain = rospy.get_param("navigation/max_gain")
         self.body_move_area_x = 4.00
         self.body_move_area_y = rospy.get_param("~body_move_area_y")
         self.wall_pos_y = 1.75
@@ -147,7 +147,7 @@ class AgilePilotNode:
         self.omega_noise = 0.5 # rad/s
         self.vel_conversion = np.sqrt(learning_max_gain/self.exec_max_gain)
         # self.vel_conversion = 1.0
-        self.time_constant = rospy.get_param("~time_constant")/self.vel_conversion #0.366
+        self.time_constant = rospy.get_param("navigation/time_constant")/self.vel_conversion #0.366
         # self.time_constant = rospy.get_param("~time_constant") #0.366
         # self.time_constant = 0.366
 
