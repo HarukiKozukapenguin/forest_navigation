@@ -15,7 +15,7 @@
   </group>
 
   <node pkg="forest_navigation" type="policy_navigator.py" name="policy_navigator" output="screen" ns="$(arg robot_ns)" >
-    <param name="ppo_path" value="$(find agile_multirotor)/exec_policy/$(arg policy)" />
+    <param name="ppo_path" value="$(find forest_navigation)/exec_policy/$(arg policy)" />
     <param name="hokuyo" value="$(arg hokuyo_raw_data)" />
     <param name="fixed_flight" type="bool" value="$(arg fixed_flight)" />
     <param name="robot_ns" value="$(arg robot_ns)" />
